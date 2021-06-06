@@ -1,0 +1,24 @@
+#include "instruction-sequence.inc"
+
+// souffle --verbose -D./output -F./input/ -I./datalog-logic ./ssa-query.dl
+
+//////////
+// QUERY
+//////////
+
+.init InstSeq = InstructionSequence
+.input InstSeq.start
+.input InstSeq.var_def
+.input InstSeq.edge
+
+.decl dominators(n:Instruction,s:Instruction)
+.output dominators()
+dominators(n,s) :- InstSeq.dom(n,s).
+
+.decl dom_frontier(n:Instruction,s:Instruction)
+.output dom_frontier()
+dom_frontier(n,s) :- InstSeq.dom_frontier(n,s).
+
+.decl phi_location(v : Variable , m : Instruction)
+.output phi_location()
+phi_location(v, i) :- InstSeq.phi_location(v, i).

@@ -1,0 +1,35 @@
+name: .NET
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Setup Souffle
+      run: |
+        curl -LJO https://github.com/souffle-lang/souffle/releases/download/2.0.2/souffle_2.0.2-1_amd64.deb
+        sudo apt-get update
+        sudo apt-get install mcpp
+        sudo dpkg -i souffle_2.0.2-1_amd64.deb
+    - name: Build query executable
+      run: python3 souffle/build.py
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: SSA_QUERY_BIN="$(pwd)/souffle/bins/ssa-query" dotnet test --no-build --verbosity normal
