@@ -19,17 +19,27 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.9
+      with:
+        cmake-version: '3.21.x'
     - name: Setup Souffle
       run: |
         curl -LJO https://github.com/souffle-lang/souffle/releases/download/2.0.2/souffle_2.0.2-1_amd64.deb
         sudo apt-get update
         sudo apt-get install mcpp
         sudo dpkg -i souffle_2.0.2-1_amd64.deb
-    - name: Build query executable
-      run: python3 souffle/build.py
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: SSA_QUERY_BIN="$(pwd)/souffle/bins/ssa-query" dotnet test --no-build --verbosity normal
+     - name: Configure
+       run: |
+        mkdir build
+        cd build 
+        cmake .. 
+     - name: Build
+       run: |
+        cd build
+        make dotnet
+        make souffle 
+     - name: Test
+       run: |
+        cd build
+        make test

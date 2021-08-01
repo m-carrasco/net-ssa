@@ -8,8 +8,11 @@ namespace NetSsa.Analyses
 {
     public class VariableDefUse
     {
-        public static void Compute(MethodBody body, Dictionary<Instruction, List<Variable>> uses, Dictionary<Instruction, List<Variable>> defs)
+        public static void Compute(MethodBody body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> defs)
         {
+            defs = new Dictionary<Instruction, List<Variable>>();
+            uses = new Dictionary<Instruction, List<Variable>>();
+            variables = new List<Variable>();
             if (!body.Method.IsStatic)
                 throw new NotImplementedException("check args and local vars");
 
@@ -19,6 +22,10 @@ namespace NetSsa.Analyses
             var stackVariables = Enumerable.Range(0, max_stack).Select(index => new Variable("s" + index)).ToList();
             var localVariables = Enumerable.Range(0, body.Variables.Count).Select(index => new Variable("l" + index)).ToList();
             var argVariables = Enumerable.Range(0, body.Method.Parameters.Count).Select(index => new Variable("a" + index)).ToList();
+
+            variables.AddRange(stackVariables);
+            variables.AddRange(localVariables);
+            variables.AddRange(argVariables);
 
             foreach (var kv in stack_sizes)
             {
@@ -39,12 +46,20 @@ namespace NetSsa.Analyses
                     case Code.Ldc_I4_1:
                     case Code.Cgt:
                     case Code.Brfalse_S:
+                    case Code.Brtrue_S:
                     case Code.Br_S:
                     case Code.Ble_S:
+                    case Code.Clt:
                     case Code.Ret:
+                    case Code.Mul:
+                    case Code.Add:
+                    case Code.Ceq:
                         break;
                     case Code.Ldarg_0:
                         uses[instruction].Add(argVariables[0]);
+                        break;
+                    case Code.Stloc_3:
+                        defs[instruction].Add(localVariables[3]);
                         break;
                     case Code.Stloc_2:
                         defs[instruction].Add(localVariables[2]);
@@ -55,6 +70,12 @@ namespace NetSsa.Analyses
                     case Code.Stloc_0:
                         defs[instruction].Add(localVariables[0]);
                         break;
+                    case Code.Stloc_S:
+                        {
+                            var variableDefinition = (VariableDefinition)instruction.Operand;
+                            defs[instruction].Add(localVariables[variableDefinition.Index]);
+                        }
+                        break;
                     case Code.Ldloc_0:
                         uses[instruction].Add(localVariables[0]);
                         break;
@@ -64,6 +85,15 @@ namespace NetSsa.Analyses
                     case Code.Ldloc_2:
                         uses[instruction].Add(localVariables[2]);
                         break;
+                    case Code.Ldloc_3:
+                        uses[instruction].Add(localVariables[3]);
+                        break;
+                    case Code.Ldloc_S:
+                        {
+                            var variableDefinition = (VariableDefinition)instruction.Operand;
+                            uses[instruction].Add(localVariables[variableDefinition.Index]);
+                            break;
+                        }
                     default:
                         throw new NotImplementedException("Unhandled instruction: " + instruction);
                 }

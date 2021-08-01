@@ -13,7 +13,7 @@ namespace NetSsa.Facts
             return "\"" + s + "\"";
         }
 
-        private static String Label(Instruction instruction)
+        public static String Label(Instruction instruction)
         {
             return "IL_" + instruction.Offset.ToString("x4");
         }
@@ -54,12 +54,14 @@ namespace NetSsa.Facts
 
         public static IEnumerable<(String, String)> VarDef(MethodBody methodBody)
         {
-            var definitions = new Dictionary<Instruction, List<Variable>>();
-            var uses = new Dictionary<Instruction, List<Variable>>();
+            VariableDefUse.Compute(methodBody, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
 
-            VariableDefUse.Compute(methodBody, uses, definitions);
+            return VarDef(definitions, uses, methodBody.Instructions);
+        }
 
-            foreach (Instruction instruction in methodBody.Instructions)
+        public static IEnumerable<(String, String)> VarDef(Dictionary<Instruction, List<Variable>> definitions, Dictionary<Instruction, List<Variable>> uses, ICollection<Instruction> instructions)
+        {
+            foreach (Instruction instruction in instructions)
             {
                 var opcode = instruction.OpCode;
                 var currentLabel = Label(instruction);
