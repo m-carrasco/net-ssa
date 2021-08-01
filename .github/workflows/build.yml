@@ -29,17 +29,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install mcpp
         sudo dpkg -i souffle_2.0.2-1_amd64.deb
-     - name: Configure
-       run: |
+    - name: Configure
+      run: |
         mkdir build
         cd build 
         cmake .. 
-     - name: Build
-       run: |
+    - name: Build
+      run: |
         cd build
         make dotnet
         make souffle 
-     - name: Test
-       run: |
+    - name: Test
+      run: |
         cd build
         make test
