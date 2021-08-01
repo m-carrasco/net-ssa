@@ -1,0 +1,33 @@
+if(SOUFFLE_FOUND)
+	set(SOUFFLE_FIND_QUIETLY TRUE)
+endif()
+
+# Define souffle command
+set(SOUFFLE_COMMAND souffle CACHE FILEPATH "Path of 'souffle' command")
+
+# Detect souffle command
+execute_process(COMMAND ${SOUFFLE_COMMAND}
+	RESULT_VARIABLE SOUFFLE_COMMAND_RESULT
+	OUTPUT_QUIET
+)
+
+# Set found variable (TODO: Review 129 state in Debian)
+if(SOUFFLE_COMMAND_RESULT EQUAL 0 OR SOUFFLE_COMMAND_RESULT EQUAL 129)
+	set(SOUFFLE_FOUND TRUE)
+else()
+	set(SOUFFLE_FOUND FALSE)
+endif()
+
+# Detect souffle variables
+if(SOUFFLE_FOUND)
+	# Detect souffle version
+	execute_process(COMMAND ${SOUFFLE_COMMAND} --version
+		RESULT_VARIABLE SOUFFLE_COMMAND_RESULT
+		OUTPUT_VARIABLE SOUFFLE_COMMAND_OUTPUT
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+
+	if(SOUFFLE_COMMAND_RESULT EQUAL 0)
+		set(SOUFFLE_VERSION "${SOUFFLE_COMMAND_OUTPUT}")
+	endif()
+endif()
