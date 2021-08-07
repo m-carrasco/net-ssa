@@ -29,6 +29,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install mcpp
         sudo dpkg -i souffle_2.0.2-1_amd64.deb
+    - name: Setup LIT
+      run: |
+        pip install lit
     - name: Configure
       run: |
         mkdir build
