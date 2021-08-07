@@ -37,9 +37,13 @@ jobs:
     - name: Build
       run: |
         cd build
-        make dotnet
-        make souffle 
-    - name: Test
+        make build-dotnet
+        make build-souffle
+    - name: Unit test
       run: |
         cd build
-        make test
+        make check-unit-test
+    - name: Integration test
+      run: |
+        cd build
+        lit integration-test -v
