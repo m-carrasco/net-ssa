@@ -11,6 +11,9 @@ config.suffixes = ['.cs', '.test']
 config.test_source_root = os.path.dirname(__file__)
 config.test_build_root = os.path.join(config.my_obj_root, 'integration-test')
 
+config.substitutions.append(('%mono', config.mono_bin))
+config.substitutions.append(('%mcs', config.mcs_bin))
+
 def _clean_test_directory(directory):
     for entry in os.scandir(directory):
         basename = os.path.basename(entry.path)

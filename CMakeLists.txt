@@ -6,6 +6,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Dotnet REQUIRED)
 find_package(Souffle REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(Mono 6.12 REQUIRED COMPONENTS)
 
 add_subdirectory(souffle)
 
