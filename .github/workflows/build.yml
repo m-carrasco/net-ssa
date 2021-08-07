@@ -27,7 +27,7 @@ jobs:
       run: |
         curl -LJO https://github.com/souffle-lang/souffle/releases/download/2.0.2/souffle_2.0.2-1_amd64.deb
         sudo apt-get update
-        sudo apt-get install mcpp libffi6
+        sudo apt-get install mcpp libffi-dev
         sudo dpkg -i souffle_2.0.2-1_amd64.deb
     - name: Setup LIT
       run: |
