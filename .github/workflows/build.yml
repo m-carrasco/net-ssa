@@ -21,6 +21,10 @@ jobs:
         sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
         sudo apt update
         sudo apt-get install mono-devel=6.12.0.122-0xamarin1+ubuntu1804b1
+        sudo apt-get install mono-utils
+    - name: Setup llvm-tools
+      run: |
+        sudo apt-get install llvm-12-tools
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:

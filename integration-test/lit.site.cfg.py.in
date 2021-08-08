@@ -4,6 +4,8 @@ config.souffle_bin_dir = "@SOUFFLE_BIN_DIR@"
 config.my_src_root = r'@CMAKE_SOURCE_DIR@'
 config.my_obj_root = r'@CMAKE_BINARY_DIR@'
 
+config.llvm_bin_dir = r'@LLVM_BINDIR@'
+
 config.mono_bin = "@MONO_EXECUTABLE@"
 config.mcs_bin = "@MCS_EXECUTABLE@"
 

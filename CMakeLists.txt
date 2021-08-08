@@ -8,6 +8,10 @@ find_package(Souffle REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 find_package(Mono 6.12 REQUIRED COMPONENTS)
 
+find_program(LLVM_CONFIG NAMES llvm-config REQUIRED)
+message(STATUS "Using llvm-config: ${LLVM_CONFIG}")
+exec_program("${LLVM_CONFIG} --bindir" OUTPUT_VARIABLE LLVM_BINDIR)
+
 add_subdirectory(souffle)
 
 set(NET_SSA_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin/net-ssa)
