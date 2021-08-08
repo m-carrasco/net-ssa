@@ -1,5 +1,4 @@
 import lit.formats
-
 import shutil
 import os
 
