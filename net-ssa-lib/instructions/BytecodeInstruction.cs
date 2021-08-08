@@ -43,12 +43,18 @@ namespace NetSsa.Instructions
                     return BinaryOperation(label, "*");
                 case Code.Clt:
                     return BinaryOperation(label, "<");
+                case Code.Bge:
+                    return BinaryConditionalBranch(label, ">=");
+                case Code.Ble:
+                    return BinaryConditionalBranch(label, "<=");
                 case Code.Ldc_I4_0:
                     instruction = "0";
                     break;
                 case Code.Ldc_I4_1:
                     instruction = "1";
                     break;
+                case Code.Ret:
+                    return Ret(label);
                 default:
                     instruction = CecilToStringNoLabel();
                     break;
@@ -69,6 +75,16 @@ namespace NetSsa.Instructions
             return String.Format("{0}: {1} = {2} {3} {4}", label, Result.name, Operands[0].name, symbol, Operands[1].name);
         }
 
+        private string BinaryConditionalBranch(String label, String symbol)
+        {
+            return String.Format("{0}: br {1} if {2} {3} {4}", label, Label(((Instruction)this.Bytecode.Operand)), Operands[0].name, symbol, Operands[1].name);
+        }
+
+        private string Ret(String label)
+        {
+            return String.Format("{0}: ret {1}", label, Operands.Count() == 0 ? String.Empty : Operands[0].name);
+        }
+
         private string CecilToStringNoLabel()
         {
             var label = Label();
@@ -77,7 +93,12 @@ namespace NetSsa.Instructions
 
         private string Label()
         {
-            return "IL_" + Bytecode.Offset.ToString("x4");
+            return Label(this.Bytecode);
+        }
+
+        private string Label(Instruction instruction)
+        {
+            return "IL_" + instruction.Offset.ToString("x4");
         }
     }
 }

@@ -32,7 +32,7 @@ namespace NetSsa.Analyses
                 Instruction instruction = kv.Key;
                 int stack_size = kv.Value;
 
-                int popDelta = ComputePopDelta(instruction);
+                int popDelta = ComputePopDelta(instruction, IsReturnTypeVoid(body));
                 uses[instruction] = Enumerable.Range(stack_size - popDelta, popDelta).Select(index => stackVariables[index]).ToList();
 
                 int pushDelta = ComputePushDelta(instruction);
@@ -47,13 +47,16 @@ namespace NetSsa.Analyses
                     case Code.Cgt:
                     case Code.Brfalse_S:
                     case Code.Brtrue_S:
+                    case Code.Br:
                     case Code.Br_S:
                     case Code.Ble_S:
+                    case Code.Ble:
                     case Code.Clt:
                     case Code.Ret:
                     case Code.Mul:
                     case Code.Add:
                     case Code.Ceq:
+                    case Code.Bge:
                         break;
                     case Code.Ldarg_0:
                         uses[instruction].Add(argVariables[0]);
@@ -100,12 +103,18 @@ namespace NetSsa.Analyses
             }
         }
 
+        static bool IsReturnTypeVoid(MethodBody body)
+        {
+            return body.Method.ReturnType.Equals(body.Method.Module.TypeSystem.Void);
+        }
 
         static Dictionary<Instruction, int> ComputeStackSize(MethodBody body, out int max_stack)
         {
             Dictionary<Instruction, int> stack_sizes = new Dictionary<Instruction, int>();
             int stack_size = 0;
             max_stack = 0;
+
+            bool returnVoid = IsReturnTypeVoid(body);
 
             foreach (var instruction in body.Instructions)
             {
@@ -119,7 +128,7 @@ namespace NetSsa.Analyses
                     stack_sizes[instruction] = stack_size;
 
                 max_stack = System.Math.Max(max_stack, stack_size);
-                ComputeStackDelta(instruction, ref stack_size);
+                ComputeStackDelta(instruction, ref stack_size, returnVoid);
                 max_stack = System.Math.Max(max_stack, stack_size);
 
                 CopyBranchStackSize(instruction, stack_sizes, stack_size);
@@ -129,9 +138,9 @@ namespace NetSsa.Analyses
             return stack_sizes;
         }
 
-        static void ComputeStackDelta(Instruction instruction, ref int stack_size)
+        static void ComputeStackDelta(Instruction instruction, ref int stack_size, bool returnVoid)
         {
-            int popDelta = ComputePopDelta(instruction);
+            int popDelta = ComputePopDelta(instruction, returnVoid);
             stack_size -= popDelta;
             int pushDelta = ComputePushDelta(instruction);
             stack_size += pushDelta;
@@ -183,7 +192,7 @@ namespace NetSsa.Analyses
             }
         }
 
-        static int ComputePopDelta(Instruction instruction)
+        static int ComputePopDelta(Instruction instruction, bool returnVoid)
         {
             switch (instruction.OpCode.FlowControl)
             {
@@ -203,6 +212,8 @@ namespace NetSsa.Analyses
                             delta++;
                         return delta;
                     }
+                case FlowControl.Return:
+                    return returnVoid ? 0 : 1;
                 default:
                     return ComputePopDelta(instruction.OpCode.StackBehaviourPop);
             }

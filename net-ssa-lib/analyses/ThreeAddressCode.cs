@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using Mono.Cecil.Cil;
 using System;
 using System.Linq;
-using Mono.Cecil;
 using NetSsa.Instructions;
+using NetSsa.Facts;
 
 namespace NetSsa.Analyses
 {
@@ -38,6 +38,11 @@ namespace NetSsa.Analyses
             return tac;
         }
 
-
+        public static List<TacInstruction> Compute(MethodBody body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions)
+        {
+            VariableDefUse.Compute(body, out variables, out uses, out definitions);
+            var edge = SsaFacts.Edge(body);
+            return ThreeAddressCode.Compute(body, variables, uses, definitions);
+        }
     }
 }

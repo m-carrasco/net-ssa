@@ -4,6 +4,10 @@ using System.CommandLine.Invocation;
 using System.IO;
 using Mono.Cecil;
 using System.Linq;
+using NetSsa.Analyses;
+using System.Collections.Generic;
+using Mono.Cecil.Cil;
+using NetSsa.Instructions;
 
 namespace NetSsaCli
 {
@@ -18,9 +22,8 @@ namespace NetSsaCli
             addListSubCommand(rootCommand);
 
             var disassemble = new Command("disassemble");
-            disassemble.Handler = CommandHandler.Create(() =>
-            {
-            });
+            disassemble.AddArgument(new Argument<String>("method", "Method to disassemble."));
+            disassemble.Handler = CommandHandler.Create<FileInfo, String>(PrintDisassemble);
 
             rootCommand.Add(disassemble);
             rootCommand.InvokeAsync(args);
@@ -86,6 +89,33 @@ namespace NetSsaCli
                 Console.WriteLine(methodDefinition.FullName);
             }
         }
+        static void PrintDisassemble(FileInfo input, String method)
+        {
+            using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(input.FullName))
+            {
+                foreach (TypeDefinition t in assembly.MainModule.GetTypes())
+                {
+                    foreach (MethodDefinition m in t.Methods)
+                    {
+                        if (m.FullName.Equals(method))
+                        {
+                            if (!m.HasBody)
+                            {
+                                Console.WriteLine("Method has no body.");
+                                return;
+                            }
+
+                            List<TacInstruction> tac = ThreeAddressCode.Compute(m.Body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
+                            Console.WriteLine(String.Join(System.Environment.NewLine, tac.Select(t => t.ToString())));
+                            return;
+                        }
+                    }
+                }
+
+                Console.WriteLine("No method found.");
+            }
+        }
+
     }
 
 }
