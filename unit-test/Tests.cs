@@ -1,13 +1,13 @@
-using NUnit.Framework;
-using Mono.Cecil;
-using System.Linq;
-using NetSsa.Facts;
+﻿using System;
 using System.Collections.Generic;
-using System;
-using NetSsa.Queries;
-using NetSsa.Analyses;
+using System.Linq;
+using Mono.Cecil;
 using Mono.Cecil.Cil;
+using NetSsa.Analyses;
+using NetSsa.Facts;
 using NetSsa.Instructions;
+using NetSsa.Queries;
+using NUnit.Framework;
 
 namespace UnitTest
 {

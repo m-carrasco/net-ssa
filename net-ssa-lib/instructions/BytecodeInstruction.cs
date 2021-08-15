@@ -1,6 +1,6 @@
-using Mono.Cecil.Cil;
-using System;
+﻿using System;
 using System.Linq;
+using Mono.Cecil.Cil;
 
 namespace NetSsa.Instructions
 {
@@ -43,18 +43,35 @@ namespace NetSsa.Instructions
                     return BinaryOperation(label, "*");
                 case Code.Clt:
                     return BinaryOperation(label, "<");
+                case Code.Ceq:
+                    return BinaryOperation(label, "==");
                 case Code.Bge:
                     return BinaryConditionalBranch(label, ">=");
                 case Code.Ble:
                     return BinaryConditionalBranch(label, "<=");
+                case Code.Bne_Un:
+                    return BinaryConditionalBranch(label, "!=", "[unsigned]");
+                case Code.Brtrue_S:
+                    return BinaryConditionalBranch(label, "==", Operands[0].name, "true");
                 case Code.Ldc_I4_0:
                     instruction = "0";
                     break;
                 case Code.Ldc_I4_1:
                     instruction = "1";
                     break;
+                case Code.Ldc_I4_2:
+                    instruction = "2";
+                    break;
+                case Code.Ldc_I4_5:
+                    instruction = "5";
+                    break;
+                case Code.Ldc_I4_M1:
+                    instruction = "-1";
+                    break;
                 case Code.Ret:
                     return Ret(label);
+                case Code.Throw:
+                    return Throw(label);
                 default:
                     instruction = CecilToStringNoLabel();
                     break;
@@ -75,14 +92,30 @@ namespace NetSsa.Instructions
             return String.Format("{0}: {1} = {2} {3} {4}", label, Result.name, Operands[0].name, symbol, Operands[1].name);
         }
 
+        private string BinaryConditionalBranch(String label, String symbol, String message)
+        {
+            return BinaryConditionalBranch(label, symbol) + " " + message;
+        }
+
         private string BinaryConditionalBranch(String label, String symbol)
         {
-            return String.Format("{0}: br {1} if {2} {3} {4}", label, Label(((Instruction)this.Bytecode.Operand)), Operands[0].name, symbol, Operands[1].name);
+            return BinaryConditionalBranch(label, symbol, Operands[0].name, Operands[1].name);
         }
+
+        private string BinaryConditionalBranch(String label, String symbol, String operand0, String operand1)
+        {
+            return String.Format("{0}: br {1} if {2} {3} {4}", label, Label(((Instruction)this.Bytecode.Operand)), operand0, symbol, operand1);
+        }
+
 
         private string Ret(String label)
         {
             return String.Format("{0}: ret {1}", label, Operands.Count() == 0 ? String.Empty : Operands[0].name);
+        }
+
+        private string Throw(String label)
+        {
+            return String.Format("{0}: throw {1}", label, Operands[0].name);
         }
 
         private string CecilToStringNoLabel()

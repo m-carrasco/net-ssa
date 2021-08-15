@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using NetSsa.IO;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using NetSsa.IO;
 
 namespace NetSsa.Queries
 {

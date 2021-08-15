@@ -1,9 +1,9 @@
+﻿using System;
 using System.Collections.Generic;
-using Mono.Cecil.Cil;
-using System;
 using System.Linq;
-using NetSsa.Instructions;
+using Mono.Cecil.Cil;
 using NetSsa.Facts;
+using NetSsa.Instructions;
 
 namespace NetSsa.Analyses
 {

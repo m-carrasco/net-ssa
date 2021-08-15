@@ -1,9 +1,15 @@
+﻿using System;
+
 namespace NetSsa.Analyses
 {
     public class Variable
     {
-        public string name;
+        public static readonly String StackVariablePrefix = "s";
+        public static readonly String LocalVariablePrefix = "l";
+        public static readonly String ArgumentVariablePrefix = "a";
+        public static readonly String ExceptionVariablePrefix = "e";
 
+        public string name;
         public Variable(string name)
         {
             this.name = name;

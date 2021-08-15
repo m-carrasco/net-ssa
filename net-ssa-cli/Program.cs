@@ -1,12 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
-using Mono.Cecil;
 using System.Linq;
-using NetSsa.Analyses;
-using System.Collections.Generic;
+using Mono.Cecil;
 using Mono.Cecil.Cil;
+using NetSsa.Analyses;
 using NetSsa.Instructions;
 
 namespace NetSsaCli

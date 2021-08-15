@@ -1,8 +1,8 @@
+﻿using System;
 using System.Collections.Generic;
-using Mono.Cecil.Cil;
-using System;
 using System.Linq;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 
 namespace NetSsa.Analyses
 {
@@ -19,9 +19,9 @@ namespace NetSsa.Analyses
             int max_stack;
             var stack_sizes = ComputeStackSize(body, out max_stack);
 
-            var stackVariables = Enumerable.Range(0, max_stack).Select(index => new Variable("s" + index)).ToList();
-            var localVariables = Enumerable.Range(0, body.Variables.Count).Select(index => new Variable("l" + index)).ToList();
-            var argVariables = Enumerable.Range(0, body.Method.Parameters.Count).Select(index => new Variable("a" + index)).ToList();
+            var stackVariables = Enumerable.Range(0, max_stack).Select(index => new Variable(Variable.StackVariablePrefix + index)).ToList();
+            var localVariables = Enumerable.Range(0, body.Variables.Count).Select(index => new Variable(Variable.LocalVariablePrefix + index)).ToList();
+            var argVariables = Enumerable.Range(0, body.Method.Parameters.Count).Select(index => new Variable(Variable.ArgumentVariablePrefix + index)).ToList();
 
             variables.AddRange(stackVariables);
             variables.AddRange(localVariables);
@@ -32,74 +32,181 @@ namespace NetSsa.Analyses
                 Instruction instruction = kv.Key;
                 int stack_size = kv.Value;
 
+                // Analyze which stack slots are consumed
                 int popDelta = ComputePopDelta(instruction, IsReturnTypeVoid(body));
                 uses[instruction] = Enumerable.Range(stack_size - popDelta, popDelta).Select(index => stackVariables[index]).ToList();
 
                 int pushDelta = ComputePushDelta(instruction);
                 defs[instruction] = Enumerable.Range(stack_size - popDelta, pushDelta).Select(index => stackVariables[index]).ToList();
 
-                switch (instruction.OpCode.Code)
+                // Analyze which local variables or arguments are consumed
+                ConsumeLocalVariables(instruction, defs, uses, argVariables, localVariables);
+            }
+
+            SetExceptionVariables(body, stackVariables[0], uses, variables);
+        }
+
+        static void ConsumeLocalVariables(Instruction instruction, Dictionary<Instruction, List<Variable>> defs, Dictionary<Instruction, List<Variable>> uses, List<Variable> argVariables, List<Variable> localVariables)
+        {
+            switch (instruction.OpCode.Code)
+            {
+                case Code.Ldarg_0:
+                    uses[instruction].Add(argVariables[0]);
+                    break;
+                case Code.Ldloc_0:
+                    uses[instruction].Add(localVariables[0]);
+                    break;
+                case Code.Ldloc_1:
+                    uses[instruction].Add(localVariables[1]);
+                    break;
+                case Code.Ldloc_2:
+                    uses[instruction].Add(localVariables[2]);
+                    break;
+                case Code.Ldloc_3:
+                    uses[instruction].Add(localVariables[3]);
+                    break;
+                case Code.Ldloc_S:
+                    {
+                        var variableDefinition = (VariableDefinition)instruction.Operand;
+                        uses[instruction].Add(localVariables[variableDefinition.Index]);
+                        break;
+                    }
+                case Code.Stloc_3:
+                    defs[instruction].Add(localVariables[3]);
+                    break;
+                case Code.Stloc_2:
+                    defs[instruction].Add(localVariables[2]);
+                    break;
+                case Code.Stloc_1:
+                    defs[instruction].Add(localVariables[1]);
+                    break;
+                case Code.Stloc_0:
+                    defs[instruction].Add(localVariables[0]);
+                    break;
+                case Code.Stloc_S:
+                    {
+                        var variableDefinition = (VariableDefinition)instruction.Operand;
+                        defs[instruction].Add(localVariables[variableDefinition.Index]);
+                        break;
+                    }
+                case Code.Ldarg:
+                case Code.Ldarg_S:
+                case Code.Ldarg_1:
+                case Code.Ldarg_2:
+                case Code.Ldarg_3:
+                case Code.Ldloc:
+                case Code.Stloc:
+                case Code.Ldarga_S:
+                case Code.Ldarga:
+                case Code.Ldloca_S:
+                case Code.Ldloca:
+                case Code.Starg:
+                case Code.Starg_S:
+                    throw new NotImplementedException("Unimplemented handler for instruction: " + instruction);
+            }
+        }
+        static void SetExceptionVariables(MethodBody body, Variable stackSlotZero, Dictionary<Instruction, List<Variable>> uses, List<Variable> variables)
+        {
+            /*
+                At the beginning of a catch handler, the stack always contains the caught exception.
+                This stack slot is not defined by an instruction in the method body. The assignment is performed 
+                by the exception handling mechanism of the runtime. 
+
+                At bytecode level, suppose we have:
+
+                    void foo() {
+                        try {
+                            ldc_1
+                            new ...
+                            throw
+                        } catch {
+                            // the stack has size 1 and contains
+                            // a reference to the caught exception
+                            pop 
+                            leave ...
+                        }
+                    }
+
+                    If we do not assign a specific variable, then we would have:
+
+                    try {
+                        s0 = 1
+                        s1 = new ....
+                        throw s1
+                    } catch{
+                        pop [s0]
+                        leave ...
+                    }
+
+                    which is not accurate because pop would never consume 's0 = 1'.
+                    The objective is to generate:
+
+                    try {
+                        s0 = 1
+                        s1 = new ...
+                        throw s1
+                    } catch{
+                        pop [e0]
+                        leave ...
+                    }
+
+                    where 'e0' is the representing the caught exception loaded by the runtime.
+            */
+
+            if (!body.HasExceptionHandlers)
+            {
+                return;
+            }
+
+            int exceptionIndex = 0;
+            foreach (var handler in body.ExceptionHandlers)
+            {
+                if (handler.HandlerType == ExceptionHandlerType.Fault)
                 {
-                    case Code.Nop:
-                    case Code.Ldc_I4:
-                    case Code.Ldc_I4_0:
-                    case Code.Ldc_I4_1:
-                    case Code.Cgt:
-                    case Code.Brfalse_S:
-                    case Code.Brtrue_S:
-                    case Code.Br:
-                    case Code.Br_S:
-                    case Code.Ble_S:
-                    case Code.Ble:
-                    case Code.Clt:
-                    case Code.Ret:
-                    case Code.Mul:
-                    case Code.Add:
-                    case Code.Ceq:
-                    case Code.Bge:
-                        break;
-                    case Code.Ldarg_0:
-                        uses[instruction].Add(argVariables[0]);
-                        break;
-                    case Code.Stloc_3:
-                        defs[instruction].Add(localVariables[3]);
-                        break;
-                    case Code.Stloc_2:
-                        defs[instruction].Add(localVariables[2]);
-                        break;
-                    case Code.Stloc_1:
-                        defs[instruction].Add(localVariables[1]);
-                        break;
-                    case Code.Stloc_0:
-                        defs[instruction].Add(localVariables[0]);
-                        break;
-                    case Code.Stloc_S:
-                        {
-                            var variableDefinition = (VariableDefinition)instruction.Operand;
-                            defs[instruction].Add(localVariables[variableDefinition.Index]);
-                        }
-                        break;
-                    case Code.Ldloc_0:
-                        uses[instruction].Add(localVariables[0]);
-                        break;
-                    case Code.Ldloc_1:
-                        uses[instruction].Add(localVariables[1]);
-                        break;
-                    case Code.Ldloc_2:
-                        uses[instruction].Add(localVariables[2]);
-                        break;
-                    case Code.Ldloc_3:
-                        uses[instruction].Add(localVariables[3]);
-                        break;
-                    case Code.Ldloc_S:
-                        {
-                            var variableDefinition = (VariableDefinition)instruction.Operand;
-                            uses[instruction].Add(localVariables[variableDefinition.Index]);
-                            break;
-                        }
-                    default:
-                        throw new NotImplementedException("Unhandled instruction: " + instruction);
+                    // There is no test case for this scenario.
+                    throw new NotImplementedException("Unhandled exception handler: fault");
                 }
+
+                if (handler.HandlerType != ExceptionHandlerType.Filter &&
+                    handler.FilterStart != null)
+                {
+                    // It is assumed this cannot happen.
+                    throw new NotImplementedException("Unexpected exception handler with non-null FilterStart.");
+                }
+
+                if (handler.HandlerType == ExceptionHandlerType.Catch ||
+                    handler.HandlerType == ExceptionHandlerType.Filter)
+                {
+                    SetExceptionVariable(body, stackSlotZero, handler, uses, variables, ref exceptionIndex);
+                }
+
+            }
+        }
+
+        static void SetExceptionVariable(MethodBody body, Variable stackSlotZero, ExceptionHandler handler, Dictionary<Instruction, List<Variable>> uses, List<Variable> variables, ref int exceptionIndex)
+        {
+            if (handler.FilterStart != null)
+            {
+                ChangeVariableFirstUse(handler.FilterStart, handler.HandlerStart, stackSlotZero, uses, variables, ref exceptionIndex);
+            }
+
+            ChangeVariableFirstUse(handler.HandlerStart, handler.HandlerEnd, stackSlotZero, uses, variables, ref exceptionIndex);
+        }
+
+        static void ChangeVariableFirstUse(Instruction start, Instruction end, Variable stackSlotZero, Dictionary<Instruction, List<Variable>> uses, List<Variable> variables, ref int exceptionIndex)
+        {
+            var currentInstruction = start;
+            int index = -1;
+            while (currentInstruction != end && index == -1)
+            {
+                List<Variable> currentUses = uses[currentInstruction];
+                index = currentUses.IndexOf(stackSlotZero);
+                if (index != -1)
+                {
+                    currentUses[index] = new Variable(Variable.ExceptionVariablePrefix + (exceptionIndex++));
+                    variables.Add(currentUses[index]);
+                }
+                currentInstruction = currentInstruction.Next;
             }
         }
 
@@ -113,6 +220,9 @@ namespace NetSsa.Analyses
             Dictionary<Instruction, int> stack_sizes = new Dictionary<Instruction, int>();
             int stack_size = 0;
             max_stack = 0;
+
+            if (body.HasExceptionHandlers)
+                ComputeExceptionHandlerStackSize(body, stack_sizes);
 
             bool returnVoid = IsReturnTypeVoid(body);
 
@@ -136,6 +246,35 @@ namespace NetSsa.Analyses
             }
 
             return stack_sizes;
+        }
+
+        static void ComputeExceptionHandlerStackSize(MethodBody body, Dictionary<Instruction, int> stack_sizes)
+        {
+            var exception_handlers = body.ExceptionHandlers;
+
+            for (int i = 0; i < exception_handlers.Count; i++)
+            {
+                var exception_handler = exception_handlers[i];
+
+                switch (exception_handler.HandlerType)
+                {
+                    case ExceptionHandlerType.Catch:
+                        AddExceptionStackSize(exception_handler.HandlerStart, stack_sizes);
+                        break;
+                    case ExceptionHandlerType.Filter:
+                        AddExceptionStackSize(exception_handler.FilterStart, stack_sizes);
+                        AddExceptionStackSize(exception_handler.HandlerStart, stack_sizes);
+                        break;
+                }
+            }
+        }
+
+        static void AddExceptionStackSize(Instruction handler_start, Dictionary<Instruction, int> stack_sizes)
+        {
+            if (handler_start == null)
+                return;
+
+            stack_sizes[handler_start] = 1;
         }
 
         static void ComputeStackDelta(Instruction instruction, ref int stack_size, bool returnVoid)
@@ -213,6 +352,11 @@ namespace NetSsa.Analyses
                         return delta;
                     }
                 case FlowControl.Return:
+                    if (instruction.OpCode.Code == OpCodes.Endfinally.Code ||
+                        instruction.OpCode.Code == OpCodes.Endfilter.Code)
+                    {
+                        return ComputePopDelta(instruction.OpCode.StackBehaviourPop);
+                    }
                     return returnVoid ? 0 : 1;
                 default:
                     return ComputePopDelta(instruction.OpCode.StackBehaviourPop);
@@ -247,8 +391,6 @@ namespace NetSsa.Analyses
                 default:
                     return 0;
             }
-
-
         }
 
         static int ComputePushDelta(Instruction instruction)
