@@ -13,15 +13,24 @@ namespace NetSsa.Analyses
             defs = new Dictionary<Instruction, List<Variable>>();
             uses = new Dictionary<Instruction, List<Variable>>();
             variables = new List<Variable>();
-            if (!body.Method.IsStatic)
-                throw new NotImplementedException("check args and local vars");
+
+            //Console.WriteLine("body.Variables.Count " + body.Variables.Count());
+            //Console.WriteLine("body.Method.Parameters.Count " + body.Method.Parameters.Count());
+            //if (!body.Method.IsStatic)
+            //    throw new NotImplementedException("check args and local vars: ");
 
             int max_stack;
             var stack_sizes = ComputeStackSize(body, out max_stack);
 
             var stackVariables = Enumerable.Range(0, max_stack).Select(index => new Variable(Variable.StackVariablePrefix + index)).ToList();
             var localVariables = Enumerable.Range(0, body.Variables.Count).Select(index => new Variable(Variable.LocalVariablePrefix + index)).ToList();
-            var argVariables = Enumerable.Range(0, body.Method.Parameters.Count).Select(index => new Variable(Variable.ArgumentVariablePrefix + index)).ToList();
+
+            int offset = body.Method.HasThis ? 1 : 0;
+            var argVariables = Enumerable.Range(0, body.Method.Parameters.Count).Select(index => new Variable(Variable.ArgumentVariablePrefix + (index + offset))).ToList();
+            if (body.Method.HasThis)
+            {
+                argVariables.Insert(0, new Variable(Variable.ArgumentVariablePrefix + "0"));
+            }
 
             variables.AddRange(stackVariables);
             variables.AddRange(localVariables);
@@ -40,13 +49,13 @@ namespace NetSsa.Analyses
                 defs[instruction] = Enumerable.Range(stack_size - popDelta, pushDelta).Select(index => stackVariables[index]).ToList();
 
                 // Analyze which local variables or arguments are consumed
-                ConsumeLocalVariables(instruction, defs, uses, argVariables, localVariables);
+                ConsumeLocalVariables(instruction, defs, uses, argVariables, localVariables, body.Method.HasThis);
             }
 
             SetExceptionVariables(body, stackVariables[0], uses, variables);
         }
 
-        static void ConsumeLocalVariables(Instruction instruction, Dictionary<Instruction, List<Variable>> defs, Dictionary<Instruction, List<Variable>> uses, List<Variable> argVariables, List<Variable> localVariables)
+        static void ConsumeLocalVariables(Instruction instruction, Dictionary<Instruction, List<Variable>> defs, Dictionary<Instruction, List<Variable>> uses, List<Variable> argVariables, List<Variable> localVariables, bool hasThis)
         {
             switch (instruction.OpCode.Code)
             {
@@ -89,11 +98,22 @@ namespace NetSsa.Analyses
                         defs[instruction].Add(localVariables[variableDefinition.Index]);
                         break;
                     }
+                case Code.Ldarg_1:
+                    uses[instruction].Add(argVariables[1]);
+                    break;
+                case Code.Ldarg_2:
+                    uses[instruction].Add(argVariables[2]);
+                    break;
+                case Code.Ldarg_3:
+                    uses[instruction].Add(argVariables[3]);
+                    break;
                 case Code.Ldarg:
                 case Code.Ldarg_S:
-                case Code.Ldarg_1:
-                case Code.Ldarg_2:
-                case Code.Ldarg_3:
+                    var parameterDefinition = (ParameterDefinition)instruction.Operand;
+                    int index = parameterDefinition.Index;
+                    int offset = hasThis ? 1 : 0;
+                    uses[instruction].Add(argVariables[index + offset]);
+                    break;
                 case Code.Ldloc:
                 case Code.Stloc:
                 case Code.Ldarga_S:
