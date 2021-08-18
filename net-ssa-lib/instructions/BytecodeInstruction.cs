@@ -19,6 +19,11 @@ namespace NetSsa.Instructions
             String instruction = String.Empty;
             switch (Bytecode.OpCode.Code)
             {
+                case Code.Ldarga:
+                case Code.Ldarga_S:
+                case Code.Ldloca:
+                case Code.Ldloca_S:
+                    return TakeVariableAddress(label);
                 case Code.Ldarg:
                 case Code.Ldarg_0:
                 case Code.Ldarg_1:
@@ -90,6 +95,10 @@ namespace NetSsa.Instructions
         private string VariableAssignment(String label)
         {
             return String.Format("{0}: {1} = {2}", label, Result.name, Operands[0].name);
+        }
+        private string TakeVariableAddress(String label)
+        {
+            return String.Format("{0}: {1} = &{2}", label, Result.name, Operands[0].name);
         }
 
         private string BinaryOperation(String label, String symbol)

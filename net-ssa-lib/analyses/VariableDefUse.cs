@@ -71,6 +71,8 @@ namespace NetSsa.Analyses
                 case Code.Ldloc_3:
                     uses[instruction].Add(localVariables[3]);
                     break;
+                case Code.Ldloca_S:
+                case Code.Ldloca:
                 case Code.Ldloc:
                 case Code.Ldloc_S:
                     {
@@ -118,6 +120,8 @@ namespace NetSsa.Analyses
                     break;
                 case Code.Ldarg:
                 case Code.Ldarg_S:
+                case Code.Ldarga_S:
+                case Code.Ldarga:
                     {
                         var parameterDefinition = (ParameterDefinition)instruction.Operand;
                         int index = parameterDefinition.Index;
@@ -125,11 +129,6 @@ namespace NetSsa.Analyses
                         uses[instruction].Add(argVariables[index + offset]);
                         break;
                     }
-                case Code.Ldarga_S:
-                case Code.Ldarga:
-                case Code.Ldloca_S:
-                case Code.Ldloca:
-                    throw new NotImplementedException("Unimplemented handler for instruction: " + instruction);
             }
         }
         static void SetExceptionVariables(MethodBody body, Variable stackSlotZero, Dictionary<Instruction, List<Variable>> uses, List<Variable> variables)
