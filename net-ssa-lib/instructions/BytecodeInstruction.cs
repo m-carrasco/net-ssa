@@ -36,6 +36,8 @@ namespace NetSsa.Instructions
                 case Code.Ldloc_2:
                 case Code.Ldloc_3:
                 case Code.Ldloc_S:
+                case Code.Starg:
+                case Code.Starg_S:
                     return VariableAssignment(label);
                 case Code.Add:
                     return BinaryOperation(label, "+");
@@ -67,6 +69,9 @@ namespace NetSsa.Instructions
                     break;
                 case Code.Ldc_I4_M1:
                     instruction = "-1";
+                    break;
+                case Code.Ldstr:
+                    instruction = "\"" + this.Bytecode.Operand + "\"";
                     break;
                 case Code.Ret:
                     return Ret(label);

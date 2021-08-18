@@ -59,9 +59,6 @@ namespace NetSsa.Analyses
         {
             switch (instruction.OpCode.Code)
             {
-                case Code.Ldarg_0:
-                    uses[instruction].Add(argVariables[0]);
-                    break;
                 case Code.Ldloc_0:
                     uses[instruction].Add(localVariables[0]);
                     break;
@@ -74,6 +71,7 @@ namespace NetSsa.Analyses
                 case Code.Ldloc_3:
                     uses[instruction].Add(localVariables[3]);
                     break;
+                case Code.Ldloc:
                 case Code.Ldloc_S:
                     {
                         var variableDefinition = (VariableDefinition)instruction.Operand;
@@ -92,12 +90,23 @@ namespace NetSsa.Analyses
                 case Code.Stloc_0:
                     defs[instruction].Add(localVariables[0]);
                     break;
+                case Code.Stloc:
                 case Code.Stloc_S:
                     {
                         var variableDefinition = (VariableDefinition)instruction.Operand;
                         defs[instruction].Add(localVariables[variableDefinition.Index]);
                         break;
                     }
+                case Code.Starg:
+                case Code.Starg_S:
+                    {
+                        var parameterDefinition = (ParameterDefinition)instruction.Operand;
+                        defs[instruction].Add(argVariables[parameterDefinition.Index]);
+                        break;
+                    }
+                case Code.Ldarg_0:
+                    uses[instruction].Add(argVariables[0]);
+                    break;
                 case Code.Ldarg_1:
                     uses[instruction].Add(argVariables[1]);
                     break;
@@ -109,19 +118,17 @@ namespace NetSsa.Analyses
                     break;
                 case Code.Ldarg:
                 case Code.Ldarg_S:
-                    var parameterDefinition = (ParameterDefinition)instruction.Operand;
-                    int index = parameterDefinition.Index;
-                    int offset = hasThis ? 1 : 0;
-                    uses[instruction].Add(argVariables[index + offset]);
-                    break;
-                case Code.Ldloc:
-                case Code.Stloc:
+                    {
+                        var parameterDefinition = (ParameterDefinition)instruction.Operand;
+                        int index = parameterDefinition.Index;
+                        int offset = hasThis ? 1 : 0;
+                        uses[instruction].Add(argVariables[index + offset]);
+                        break;
+                    }
                 case Code.Ldarga_S:
                 case Code.Ldarga:
                 case Code.Ldloca_S:
                 case Code.Ldloca:
-                case Code.Starg:
-                case Code.Starg_S:
                     throw new NotImplementedException("Unimplemented handler for instruction: " + instruction);
             }
         }
