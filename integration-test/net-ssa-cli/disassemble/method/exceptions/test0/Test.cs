@@ -1,5 +1,5 @@
 // RUN: %mcs -target:library -out:%T/Test.dll %s
-// RUN: %net-ssa-cli %T/Test.dll disassemble "System.Int32 Test::Foo(System.Int32)" > %t.disassemble
+// RUN: %net-ssa-cli %T/Test.dll disassemble method "System.Int32 Test::Foo(System.Int32)" > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
 // CHECK: IL_0000: s0 = -1
