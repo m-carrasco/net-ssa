@@ -194,8 +194,7 @@ namespace NetSsa.Analyses
             {
                 if (handler.HandlerType == ExceptionHandlerType.Fault)
                 {
-                    // There is no test case for this scenario.
-                    throw new NotImplementedException("Unhandled exception handler: fault");
+                    continue;
                 }
 
                 if (handler.HandlerType != ExceptionHandlerType.Filter &&
