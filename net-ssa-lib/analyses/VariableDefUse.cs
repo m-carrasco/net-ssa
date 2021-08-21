@@ -14,11 +14,6 @@ namespace NetSsa.Analyses
             uses = new Dictionary<Instruction, List<Variable>>();
             variables = new List<Variable>();
 
-            //Console.WriteLine("body.Variables.Count " + body.Variables.Count());
-            //Console.WriteLine("body.Method.Parameters.Count " + body.Method.Parameters.Count());
-            //if (!body.Method.IsStatic)
-            //    throw new NotImplementedException("check args and local vars: ");
-
             int max_stack;
             var stack_sizes = ComputeStackSize(body, out max_stack);
 
@@ -48,11 +43,19 @@ namespace NetSsa.Analyses
                 int pushDelta = ComputePushDelta(instruction);
                 defs[instruction] = Enumerable.Range(stack_size - popDelta, pushDelta).Select(index => stackVariables[index]).ToList();
 
+                if (instruction.OpCode.Code == OpCodes.Dup.Code)
+                {
+                    // for sake of simplicity, a DUP opcode only defines
+                    // one variable. semantic-wise, the consumed operand is left 
+                    // untouched.
+                    defs[instruction].RemoveAt(0);
+                }
+
                 // Analyze which local variables or arguments are consumed
                 ConsumeLocalVariables(instruction, defs, uses, argVariables, localVariables, body.Method.HasThis);
             }
 
-            SetExceptionVariables(body, stackVariables[0], uses, variables);
+            SetExceptionVariables(body, stackVariables, uses, variables);
         }
 
         static void ConsumeLocalVariables(Instruction instruction, Dictionary<Instruction, List<Variable>> defs, Dictionary<Instruction, List<Variable>> uses, List<Variable> argVariables, List<Variable> localVariables, bool hasThis)
@@ -131,7 +134,7 @@ namespace NetSsa.Analyses
                     }
             }
         }
-        static void SetExceptionVariables(MethodBody body, Variable stackSlotZero, Dictionary<Instruction, List<Variable>> uses, List<Variable> variables)
+        static void SetExceptionVariables(MethodBody body, IEnumerable<Variable> stackVariables, Dictionary<Instruction, List<Variable>> uses, List<Variable> variables)
         {
             /*
                 At the beginning of a catch handler, the stack always contains the caught exception.
@@ -183,6 +186,8 @@ namespace NetSsa.Analyses
             {
                 return;
             }
+
+            Variable stackSlotZero = stackVariables.ElementAt(0);
 
             int exceptionIndex = 0;
             foreach (var handler in body.ExceptionHandlers)

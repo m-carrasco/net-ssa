@@ -135,7 +135,7 @@ namespace NetSsaCli
                         if (!m.HasBody)
                         {
                             Console.WriteLine("\tMethod has no body.");
-                            return;
+                            continue;
                         }
 
                         List<TacInstruction> tac = ThreeAddressCode.Compute(m.Body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
