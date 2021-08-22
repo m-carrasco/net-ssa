@@ -1,0 +1,16 @@
+name: docker-ubuntu
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build the Docker image
+        run: cd $GITHUB_WORKSPACE && docker build . --file Dockerfile --tag net-ssa:net-ssa
