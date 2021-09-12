@@ -58,7 +58,7 @@
     imdom(n,x) :- s_dom(n,x), s_domsize(x,s), s_max_domsize(n,s).
 
     .decl dom_frontier(n:N,i:N)
-    dom_frontier(x,y) :- node(z), edge(z, y), dom(x,z), !s_dom(x, y).
+    dom_frontier(x,y) :- node(z), edge(z, y), dom(z, x), !s_dom(y, x).
 }
 
 .type JumpInstruction <: symbol
