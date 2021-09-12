@@ -13,6 +13,7 @@ config.test_build_root = os.path.join(config.my_obj_root, 'integration-test')
 config.substitutions.append(('%mono', config.mono_bin))
 config.substitutions.append(('%mcs', config.mcs_bin))
 config.substitutions.append(('%ilasm', config.ilasm_bin))
+config.substitutions.append(('%ssa-query', os.path.join(config.souffle_bin_dir, "ssa-query")))
 config.substitutions.append(('%net-ssa-cli', os.path.join(config.net_ssa_bin_dir, "net-ssa-cli")))
 config.substitutions.append(('%FileCheck', os.path.join(config.llvm_bin_dir, "FileCheck")))
 

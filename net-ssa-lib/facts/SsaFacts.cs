@@ -29,15 +29,32 @@ namespace NetSsa.Facts
                 {
                     case FlowControl.Next:
                         break;
+                    case FlowControl.Meta:
+                        break;
                     case FlowControl.Cond_Branch:
-                        yield return (currentLabel, Label((Instruction)instruction.Operand));
+                        if (instruction.Operand is Instruction[] targets)
+                        {
+                            foreach (var t in targets)
+                            {
+                                yield return (currentLabel, Label(t));
+                            }
+                        }
+                        else
+                        {
+                            yield return (currentLabel, Label((Instruction)instruction.Operand));
+                        }
                         break;
                     case FlowControl.Branch:
                         hasNext = false;
                         yield return (currentLabel, Label((Instruction)instruction.Operand));
                         break;
                     case FlowControl.Return:
+                    // THIS IS WRONG WE MUST CONSIDER CATCHES
+                    case FlowControl.Throw:
                         hasNext = false;
+                        break;
+                    case FlowControl.Call:
+                        hasNext = instruction.OpCode.Code != Code.Jmp;
                         break;
                     default:
                         throw new NotImplementedException("Unhandled flow control type: " + flowControl);
