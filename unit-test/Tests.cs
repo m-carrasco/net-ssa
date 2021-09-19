@@ -135,11 +135,7 @@ namespace UnitTest
 
             SsaQuery.Query(start, edge, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier);
 
-            var expectedPhiLocation = new List<(String, String)>(){
-                ("l0","IL_000f")
-            };
-
-            Assert.That(phiLocation, Is.EquivalentTo(expectedPhiLocation));
+            Assert.True(phiLocation.Contains(("l0", "IL_000f")));
         }
     }
 }
