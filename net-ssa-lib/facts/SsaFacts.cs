@@ -8,11 +8,6 @@ namespace NetSsa.Facts
 {
     public class SsaFacts
     {
-        private static String Quote(String s)
-        {
-            return "\"" + s + "\"";
-        }
-
         public static String Label(Instruction instruction)
         {
             return "IL_" + instruction.Offset.ToString("x4");
@@ -20,49 +15,19 @@ namespace NetSsa.Facts
 
         public static IEnumerable<(String, String)> Edge(MethodBody methodBody)
         {
+            var successors = new Dictionary<Instruction, ISet<Instruction>>();
+            Edges.NonExceptionalEdges(successors, methodBody);
+            Edges.ExceptionalEdges(successors, methodBody);
+
             foreach (Instruction instruction in methodBody.Instructions)
             {
-                FlowControl flowControl = instruction.OpCode.FlowControl;
-                bool hasNext = true;
-                String currentLabel = Label(instruction);
-                switch (instruction.OpCode.FlowControl)
-                {
-                    case FlowControl.Next:
-                        break;
-                    case FlowControl.Meta:
-                        break;
-                    case FlowControl.Cond_Branch:
-                        if (instruction.Operand is Instruction[] targets)
-                        {
-                            foreach (var t in targets)
-                            {
-                                yield return (currentLabel, Label(t));
-                            }
-                        }
-                        else
-                        {
-                            yield return (currentLabel, Label((Instruction)instruction.Operand));
-                        }
-                        break;
-                    case FlowControl.Branch:
-                        hasNext = false;
-                        yield return (currentLabel, Label((Instruction)instruction.Operand));
-                        break;
-                    case FlowControl.Return:
-                    // THIS IS WRONG WE MUST CONSIDER CATCHES
-                    case FlowControl.Throw:
-                        hasNext = false;
-                        break;
-                    case FlowControl.Call:
-                        hasNext = instruction.OpCode.Code != Code.Jmp;
-                        break;
-                    default:
-                        throw new NotImplementedException("Unhandled flow control type: " + flowControl);
-                }
+                if (!successors.ContainsKey(instruction))
+                    continue;
 
-                if (hasNext && instruction.Next != null)
+                String currentLabel = Label(instruction);
+                foreach (var successor in successors[instruction])
                 {
-                    yield return (currentLabel, Label(instruction.Next));
+                    yield return (currentLabel, Label(successor));
                 }
             }
 

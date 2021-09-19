@@ -22,7 +22,7 @@ namespace NetSsaCli
             {
                 Arity = ArgumentArity.ExactlyOne
             };
-            query.FromAmong(new String[] { "phi_location" });
+            query.FromAmong(new String[] { "phi_location", "edge" });
             datalog.AddArgument(query);
 
             var method = new Command("method");
@@ -46,43 +46,67 @@ namespace NetSsaCli
                     return;
                 }
 
-                var body = m.Body;
-                var varDef = SsaFacts.VarDef(body);
-                var edge = SsaFacts.Edge(body);
-                var start = SsaFacts.Start(body);
-
-                Console.WriteLine("edge: " + (edge.Count() == 0 ? "empty" : ""));
-                foreach (var t in edge)
+                switch (query)
                 {
-                    Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
-                }
-
-                Console.WriteLine("var_def: " + (varDef.Count() == 0 ? "empty" : ""));
-                foreach (var t in varDef)
-                {
-                    Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
-                }
-
-                SsaQuery.Query(start, edge, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier);
-
-                Console.WriteLine("phi_location: " + (phiLocation.Count() == 0 ? "empty" : ""));
-                foreach (var t in phiLocation)
-                {
-                    Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
-                }
-
-                Console.WriteLine("dominators: " + (dominators.Count() == 0 ? "empty" : ""));
-                foreach (var t in dominators)
-                {
-                    Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
-                }
-
-                Console.WriteLine("dominance_frontier: " + (domFrontier.Count() == 0 ? "empty" : ""));
-                foreach (var t in domFrontier)
-                {
-                    Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
+                    case "phi_location":
+                        PhiLocMethod(m);
+                        break;
+                    case "edge":
+                        EdgeMethod(m);
+                        break;
                 }
             });
+        }
+
+        static void PhiLocMethod(MethodDefinition m)
+        {
+            var body = m.Body;
+            var varDef = SsaFacts.VarDef(body);
+            var edge = SsaFacts.Edge(body);
+            var start = SsaFacts.Start(body);
+
+            EdgeMethod(edge);
+
+            Console.WriteLine("var_def: " + (varDef.Count() == 0 ? "empty" : ""));
+            foreach (var t in varDef)
+            {
+                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
+            }
+
+            SsaQuery.Query(start, edge, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier);
+
+            Console.WriteLine("phi_location: " + (phiLocation.Count() == 0 ? "empty" : ""));
+            foreach (var t in phiLocation)
+            {
+                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
+            }
+
+            Console.WriteLine("dominators: " + (dominators.Count() == 0 ? "empty" : ""));
+            foreach (var t in dominators)
+            {
+                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
+            }
+
+            Console.WriteLine("dominance_frontier: " + (domFrontier.Count() == 0 ? "empty" : ""));
+            foreach (var t in domFrontier)
+            {
+                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
+            }
+        }
+
+        static void EdgeMethod(MethodDefinition m)
+        {
+            var edge = SsaFacts.Edge(m.Body);
+            EdgeMethod(edge);
+        }
+
+        static void EdgeMethod(IEnumerable<(string, string)> edge)
+        {
+            Console.WriteLine("edge: " + (edge.Count() == 0 ? "empty" : ""));
+            foreach (var t in edge)
+            {
+                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
+            }
         }
 
         static void PrintQueryAll(FileInfo input, String query)
@@ -94,21 +118,34 @@ namespace NetSsaCli
                     return;
                 }
 
-                Console.WriteLine("Method: " + m.FullName);
-
-                var body = m.Body;
-                var varDef = SsaFacts.VarDef(body);
-                var edge = SsaFacts.Edge(body);
-                var start = SsaFacts.Start(body);
-
-                SsaQuery.Query(start, edge, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier);
-
-                Console.WriteLine("phi_location: " + (phiLocation.Count() == 0 ? "empty" : ""));
-                foreach (var t in phiLocation)
+                switch (query)
                 {
-                    Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
+                    case "phi_location":
+                        PhiLocAll(m);
+                        break;
+                    case "edge":
+                        EdgeMethod(m);
+                        break;
                 }
             });
+        }
+
+        static void PhiLocAll(MethodDefinition m)
+        {
+            Console.WriteLine("Method: " + m.FullName);
+
+            var body = m.Body;
+            var varDef = SsaFacts.VarDef(body);
+            var edge = SsaFacts.Edge(body);
+            var start = SsaFacts.Start(body);
+
+            SsaQuery.Query(start, edge, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier);
+
+            Console.WriteLine("phi_location: " + (phiLocation.Count() == 0 ? "empty" : ""));
+            foreach (var t in phiLocation)
+            {
+                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
+            }
         }
     }
 }
