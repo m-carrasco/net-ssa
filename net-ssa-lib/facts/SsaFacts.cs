@@ -13,11 +13,30 @@ namespace NetSsa.Facts
             return "IL_" + instruction.Offset.ToString("x4");
         }
 
-        public static IEnumerable<(String, String)> Edge(MethodBody methodBody)
+        public static IEnumerable<(String, String)> Successor(MethodBody methodBody)
         {
             var successors = new Dictionary<Instruction, ISet<Instruction>>();
-            Edges.NonExceptionalEdges(successors, methodBody);
-            Edges.ExceptionalEdges(successors, methodBody);
+            Analyses.Successor.NonExceptionalSuccessor(successors, methodBody);
+
+            foreach (Instruction instruction in methodBody.Instructions)
+            {
+                if (!successors.ContainsKey(instruction))
+                    continue;
+
+                String currentLabel = Label(instruction);
+                foreach (var successor in successors[instruction])
+                {
+                    yield return (currentLabel, Label(successor));
+                }
+            }
+
+            yield break;
+        }
+
+        public static IEnumerable<(String, String)> ExceptionalSuccessor(MethodBody methodBody)
+        {
+            var successors = new Dictionary<Instruction, ISet<Instruction>>();
+            Analyses.Successor.ExceptionalSuccessors(successors, methodBody);
 
             foreach (Instruction instruction in methodBody.Instructions)
             {

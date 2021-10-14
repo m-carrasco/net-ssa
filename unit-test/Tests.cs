@@ -66,7 +66,7 @@ namespace UnitTest
         public void TestEdge()
         {
             var methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
-            var computedEdge = SsaFacts.Edge(methodDefinition.Body);
+            var computedEdge = SsaFacts.Successor(methodDefinition.Body);
             var expected = new List<(String, String)>() {
                 ("IL_0000","IL_0001"),
                 ("IL_0001","IL_0002"),
@@ -130,10 +130,11 @@ namespace UnitTest
             var body = methodDefinition.Body;
 
             var varDef = SsaFacts.VarDef(body);
-            var edge = SsaFacts.Edge(body);
+            var successor = SsaFacts.Successor(body);
+            var exceptionalSuccessor = SsaFacts.ExceptionalSuccessor(body);
             var start = SsaFacts.Start(body);
 
-            SsaQuery.Query(start, edge, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier);
+            SsaQuery.Query(start, successor, exceptionalSuccessor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edge);
 
             Assert.True(phiLocation.Contains(("l0", "IL_000f")));
         }

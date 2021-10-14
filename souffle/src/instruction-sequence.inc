@@ -1,6 +1,6 @@
 .comp DiGraph<N> {
     .decl node(a:N)
-    .decl edge(a:N,b:N)
+    .decl edge(a:N,b:N) overridable
     .decl start(i : N)
 
     node(X) :- edge(X,_).
@@ -9,9 +9,6 @@
     .decl reach(a:N,b:N)
     reach(X,Y) :- edge(X,Y).
     reach(X,Z) :- reach(X,Y),reach(Y,Z).
-
-    //.decl clique(a:N,b:N)
-    //clique(X,Y) :- reach(X,Y),reach(Y,X).
 
     // Non-dominance of input graph
     //
@@ -70,6 +67,19 @@
 
 .comp InstructionSequence  : DiGraph<Instruction> {
     .decl var_def(v : Variable , m : Instruction)
+
+    // b is a's successor
+    .decl successor(a:Instruction, b:Instruction)
+    // if an exception is thrown while executing a, b is a's successor
+    .decl exceptional_successor(a:Instruction, b:Instruction)
+
+    .override edge
+    edge(x, y) :- successor(x, y).
+    edge(x, y) :- exceptional_successor(x, y).
+    // Depending on the sort of analysis that is performed,
+    // control flow may be thought in this way. For phi nodes calculation it should not
+    // be necessary.
+    // edge(x, y) :- node(x), node(y), node(z), edge(x, z), exceptional_successor(z, y).
 
     .decl phi_location(v : Variable , m : Instruction)
     phi_location(v, i) :- var_def(v, j), dom_frontier(j, i), edge(x, i), edge(y, i), x!=y.

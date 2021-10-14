@@ -62,48 +62,41 @@ namespace NetSsaCli
         {
             var body = m.Body;
             var varDef = SsaFacts.VarDef(body);
-            var edge = SsaFacts.Edge(body);
+            var successor = SsaFacts.Successor(body);
+            var exceptionalSuccessor = SsaFacts.ExceptionalSuccessor(body);
             var start = SsaFacts.Start(body);
 
-            EdgeMethod(edge);
+            PrintTuples(varDef, "var_def");
+            PrintTuples(successor, "successor");
+            PrintTuples(exceptionalSuccessor, "exceptional_successor");
+            SsaQuery.Query(start, successor, exceptionalSuccessor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edges);
 
-            Console.WriteLine("var_def: " + (varDef.Count() == 0 ? "empty" : ""));
-            foreach (var t in varDef)
-            {
-                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
-            }
-
-            SsaQuery.Query(start, edge, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier);
-
-            Console.WriteLine("phi_location: " + (phiLocation.Count() == 0 ? "empty" : ""));
-            foreach (var t in phiLocation)
-            {
-                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
-            }
-
-            Console.WriteLine("dominators: " + (dominators.Count() == 0 ? "empty" : ""));
-            foreach (var t in dominators)
-            {
-                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
-            }
-
-            Console.WriteLine("dominance_frontier: " + (domFrontier.Count() == 0 ? "empty" : ""));
-            foreach (var t in domFrontier)
-            {
-                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
-            }
+            PrintTuples(phiLocation, "phi_location");
+            PrintTuples(dominators, "dominators");
+            PrintTuples(domFrontier, "dominance_frontier");
         }
 
         static void EdgeMethod(MethodDefinition m)
         {
-            var edge = SsaFacts.Edge(m.Body);
-            EdgeMethod(edge);
+            var body = m.Body;
+            var varDef = SsaFacts.VarDef(body);
+            var successor = SsaFacts.Successor(body);
+            var exceptional_successor = SsaFacts.ExceptionalSuccessor(body);
+            var start = SsaFacts.Start(body);
+
+            PrintTuples(successor, "successor");
+            PrintTuples(exceptional_successor, "exceptional_successor");
+
+            // This is not the best because 'phi_locations' is calculated while 'edge' is only wanted.
+            SsaQuery.Query(start, successor, exceptional_successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edges);
+
+            PrintTuples(edges, "edge");
         }
 
-        static void EdgeMethod(IEnumerable<(string, string)> edge)
+        static void PrintTuples(IEnumerable<(string, string)> tuples, string name)
         {
-            Console.WriteLine("edge: " + (edge.Count() == 0 ? "empty" : ""));
-            foreach (var t in edge)
+            Console.WriteLine(name + ": " + (tuples.Count() == 0 ? "empty" : ""));
+            foreach (var t in tuples)
             {
                 Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
             }
@@ -136,16 +129,13 @@ namespace NetSsaCli
 
             var body = m.Body;
             var varDef = SsaFacts.VarDef(body);
-            var edge = SsaFacts.Edge(body);
+            var successor = SsaFacts.Successor(body);
+            var exceptionalSuccessor = SsaFacts.ExceptionalSuccessor(body);
             var start = SsaFacts.Start(body);
 
-            SsaQuery.Query(start, edge, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier);
+            SsaQuery.Query(start, successor, exceptionalSuccessor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edge);
 
-            Console.WriteLine("phi_location: " + (phiLocation.Count() == 0 ? "empty" : ""));
-            foreach (var t in phiLocation)
-            {
-                Console.WriteLine(String.Format("\t{0} {1}", t.Item1, t.Item2));
-            }
+            PrintTuples(phiLocation, "phi_location");
         }
     }
 }

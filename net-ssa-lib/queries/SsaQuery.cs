@@ -10,7 +10,7 @@ namespace NetSsa.Queries
 {
     public class SsaQuery
     {
-        private static String GetSsaQueryBinPath()
+        public static String GetSsaQueryBinPath()
         {
             String ssaQueryBin = Path.GetFullPath(Environment.GetEnvironmentVariable("SSA_QUERY_BIN"));
 
@@ -21,12 +21,15 @@ namespace NetSsa.Queries
 
             return ssaQueryBin;
         }
+
         public static void Query(Tuple<String> startFact,
                                 IEnumerable<(String, String)> edgeFacts,
+                                IEnumerable<(String, String)> exceptionalEdgeFacts,
                                 IEnumerable<(String, String)> varDefFacts,
                                 out IEnumerable<(String, String)> phiLocation,
                                 out IEnumerable<(String, String)> dominators,
-                                out IEnumerable<(String, String)> domFrontier)
+                                out IEnumerable<(String, String)> domFrontier,
+                                out IEnumerable<(String, String)> edges)
         {
 
 
@@ -35,8 +38,12 @@ namespace NetSsa.Queries
             String factsDirectory = FileIO.GetTempDirectory("facts_directory");
             String outputDirectory = FileIO.GetTempDirectory("output_directory");
 
-            String edgeFile = Path.Join(factsDirectory, "InstSeq.edge.facts");
+            String edgeFile = Path.Join(factsDirectory, "InstSeq.successor.facts");
             FileIO.WriteToFile(edgeFile, edgeFacts.Cast<ITuple>());
+
+            String exceptionalEdgeFile = Path.Join(factsDirectory, "InstSeq.exceptional_successor.facts");
+            FileIO.WriteToFile(exceptionalEdgeFile, exceptionalEdgeFacts.Cast<ITuple>());
+
             String startFile = Path.Join(factsDirectory, "InstSeq.start.facts");
             var startFacts = new List<Tuple<String>>() { startFact };
             FileIO.WriteToFile(startFile, startFacts.Cast<ITuple>());
@@ -55,7 +62,7 @@ namespace NetSsa.Queries
             phiLocation = FileIO.ReadFile(Path.Join(outputDirectory, "phi_location.csv")).Cast<(String, String)>();
             dominators = FileIO.ReadFile(Path.Join(outputDirectory, "dominators.csv")).Cast<(String, String)>();
             domFrontier = FileIO.ReadFile(Path.Join(outputDirectory, "dom_frontier.csv")).Cast<(String, String)>();
-
+            edges = FileIO.ReadFile(Path.Join(outputDirectory, "edge.csv")).Cast<(String, String)>();
         }
     }
 }

@@ -4,9 +4,9 @@ using Mono.Cecil.Cil;
 
 namespace NetSsa.Analyses
 {
-    public class Edges
+    public class Successor
     {
-        public static void NonExceptionalEdges(IDictionary<Instruction, ISet<Instruction>> edges, MethodBody methodBody)
+        public static void NonExceptionalSuccessor(IDictionary<Instruction, ISet<Instruction>> edges, MethodBody methodBody)
         {
             foreach (Instruction instruction in methodBody.Instructions)
             {
@@ -59,7 +59,7 @@ namespace NetSsa.Analyses
             }
         }
 
-        public static void ExceptionalEdges(IDictionary<Instruction, ISet<Instruction>> edges, MethodBody methodBody)
+        public static void ExceptionalSuccessors(IDictionary<Instruction, ISet<Instruction>> edges, MethodBody methodBody)
         {
             if (!methodBody.HasExceptionHandlers)
                 return;
