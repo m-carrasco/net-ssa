@@ -68,7 +68,7 @@ namespace NetSsa.Facts
                 var currentLabel = Label(instruction);
 
                 foreach (Variable variable in definitions[instruction])
-                    yield return (variable.name, currentLabel);
+                    yield return (variable.Name, currentLabel);
             }
 
             yield break;

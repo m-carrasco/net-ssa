@@ -13,7 +13,7 @@ namespace NetSsa.Analyses
         {
             List<BytecodeInstruction> bytecodes = new List<BytecodeInstruction>();
 
-            var variableNameToVariable = variables.ToDictionary(variable => variable.name);
+            var variableNameToVariable = variables.ToDictionary(variable => variable.Name);
 
             // Create one tac instruction per each cil instruction
             foreach (Mono.Cecil.Cil.Instruction cecilBytecode in body.Instructions)

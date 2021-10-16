@@ -138,5 +138,32 @@ namespace UnitTest
 
             Assert.True(phiLocation.Contains(("l0", "IL_000f")));
         }
+
+        [Test]
+        public void TestExampleDisassemble()
+        {
+            // If this test is changed, please update README accordingly.
+
+            Mono.Cecil.MethodDefinition methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
+            Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
+
+            List<NetSsa.Instructions.BytecodeInstruction> tac = Bytecode.Compute(body, out List<Variable> variables, out Dictionary<Mono.Cecil.Cil.Instruction, List<Variable>> uses, out Dictionary<Mono.Cecil.Cil.Instruction, List<Variable>> definitions);
+
+            foreach (var ins in tac)
+            {
+                Mono.Cecil.Cil.Instruction cil = ins.Bytecode;
+                Console.WriteLine("Opcode: " + cil.OpCode.Code);
+
+                foreach (NetSsa.Analyses.Variable op in ins.Operands)
+                {
+                    Console.WriteLine("Operand: " + op.Name);
+                }
+
+                if (ins.Result != null)
+                {
+                    Console.WriteLine("Result: " + ins.Result.Name);
+                }
+            }
+        }
     }
 }

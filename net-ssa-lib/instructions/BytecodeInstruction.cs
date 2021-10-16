@@ -58,8 +58,12 @@ namespace NetSsa.Instructions
                     return BinaryConditionalBranch(label, "<=");
                 case Code.Bne_Un:
                     return BinaryConditionalBranch(label, "!=", "[unsigned]");
+                case Code.Ble_Un:
+                    return BinaryConditionalBranch(label, "<=", "[unsigned]");
+                case Code.Bge_Un:
+                    return BinaryConditionalBranch(label, ">=", "[unsigned]");
                 case Code.Brtrue_S:
-                    return BinaryConditionalBranch(label, "==", Operands[0].name, "true");
+                    return BinaryConditionalBranch(label, "==", Operands[0].Name, "true");
                 case Code.Ldc_I4_0:
                     instruction = "0";
                     break;
@@ -86,24 +90,24 @@ namespace NetSsa.Instructions
                     instruction = CecilToStringNoLabel();
                     break;
             }
-            var result = Result != null ? (" " + Result.name + " =") : String.Empty;
-            var operands = this.Operands.Count() > 0 ? " " + String.Format("[{0}]", String.Join(", ", this.Operands.Select(operand => operand.name))) : String.Empty;
+            var result = Result != null ? (" " + Result.Name + " =") : String.Empty;
+            var operands = this.Operands.Count() > 0 ? " " + String.Format("[{0}]", String.Join(", ", this.Operands.Select(operand => operand.Name))) : String.Empty;
 
             return String.Format("{0}:{1} {2}{3}", label, result, instruction, operands).Trim();
         }
 
         private string VariableAssignment(String label)
         {
-            return String.Format("{0}: {1} = {2}", label, Result.name, Operands[0].name);
+            return String.Format("{0}: {1} = {2}", label, Result.Name, Operands[0].Name);
         }
         private string TakeVariableAddress(String label)
         {
-            return String.Format("{0}: {1} = &{2}", label, Result.name, Operands[0].name);
+            return String.Format("{0}: {1} = &{2}", label, Result.Name, Operands[0].Name);
         }
 
         private string BinaryOperation(String label, String symbol)
         {
-            return String.Format("{0}: {1} = {2} {3} {4}", label, Result.name, Operands[0].name, symbol, Operands[1].name);
+            return String.Format("{0}: {1} = {2} {3} {4}", label, Result.Name, Operands[0].Name, symbol, Operands[1].Name);
         }
 
         private string BinaryConditionalBranch(String label, String symbol, String message)
@@ -113,7 +117,7 @@ namespace NetSsa.Instructions
 
         private string BinaryConditionalBranch(String label, String symbol)
         {
-            return BinaryConditionalBranch(label, symbol, Operands[0].name, Operands[1].name);
+            return BinaryConditionalBranch(label, symbol, Operands[0].Name, Operands[1].Name);
         }
 
         private string BinaryConditionalBranch(String label, String symbol, String operand0, String operand1)
@@ -124,12 +128,12 @@ namespace NetSsa.Instructions
 
         private string Ret(String label)
         {
-            return String.Format("{0}: ret {1}", label, Operands.Count() == 0 ? String.Empty : Operands[0].name);
+            return String.Format("{0}: ret {1}", label, Operands.Count() == 0 ? String.Empty : Operands[0].Name);
         }
 
         private string Throw(String label)
         {
-            return String.Format("{0}: throw {1}", label, Operands[0].name);
+            return String.Format("{0}: throw {1}", label, Operands[0].Name);
         }
 
         private string CecilToStringNoLabel()

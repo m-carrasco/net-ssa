@@ -9,10 +9,10 @@ namespace NetSsa.Analyses
         public static readonly String ArgumentVariablePrefix = "a";
         public static readonly String ExceptionVariablePrefix = "e";
 
-        public string name;
+        public string Name;
         public Variable(string name)
         {
-            this.name = name;
+            this.Name = name;
         }
     }
 }
