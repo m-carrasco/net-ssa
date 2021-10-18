@@ -147,7 +147,7 @@ namespace UnitTest
             Mono.Cecil.MethodDefinition methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
             Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
 
-            List<NetSsa.Instructions.BytecodeInstruction> tac = Bytecode.Compute(body, out List<Variable> variables, out Dictionary<Mono.Cecil.Cil.Instruction, List<Variable>> uses, out Dictionary<Mono.Cecil.Cil.Instruction, List<Variable>> definitions);
+            LinkedList<NetSsa.Instructions.BytecodeInstruction> tac = Bytecode.Compute(body, out List<Variable> variables, out Dictionary<Mono.Cecil.Cil.Instruction, List<Variable>> uses, out Dictionary<Mono.Cecil.Cil.Instruction, List<Variable>> definitions);
 
             foreach (var ins in tac)
             {

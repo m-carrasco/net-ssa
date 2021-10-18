@@ -13,6 +13,11 @@ namespace NetSsa.Instructions
 
         public Instruction Bytecode;
 
+        public override string Label()
+        {
+            return Label(this.Bytecode);
+        }
+
         public override string ToString()
         {
             String label = Label();
@@ -140,11 +145,6 @@ namespace NetSsa.Instructions
         {
             var label = Label();
             return Bytecode.ToString().Substring(label.Count() + 2).Trim();
-        }
-
-        private string Label()
-        {
-            return Label(this.Bytecode);
         }
 
         private string Label(Instruction instruction)

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using NetSsa.Analyses;
+using System;
 
 namespace NetSsa.Instructions
 {
@@ -7,5 +8,7 @@ namespace NetSsa.Instructions
     {
         public Variable Result;
         public List<Variable> Operands = new List<Variable>();
+
+        public abstract String Label();
     }
 }

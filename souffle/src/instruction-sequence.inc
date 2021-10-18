@@ -82,6 +82,6 @@
     // edge(x, y) :- node(x), node(y), node(z), edge(x, z), exceptional_successor(z, y).
 
     .decl phi_location(v : Variable , m : Instruction)
-    phi_location(v, i) :- var_def(v, j), dom_frontier(j, i), edge(x, i), edge(y, i), x!=y.
-    phi_location(v, i) :- phi_location(v, n), dom_frontier(n, i), edge(x, i), edge(y, i), x!=y.
+    phi_location(v, i) :- var_def(v, j), dom_frontier(j, i).
+    phi_location(v, i) :- phi_location(v, n), dom_frontier(n, i).
 }

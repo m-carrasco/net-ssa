@@ -2,16 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using Mono.Cecil.Cil;
-using NetSsa.Facts;
 using NetSsa.Instructions;
 
 namespace NetSsa.Analyses
 {
     public class Bytecode
     {
-        public static List<BytecodeInstruction> Compute(MethodBody body, List<Variable> variables, Dictionary<Instruction, List<Variable>> uses, Dictionary<Instruction, List<Variable>> definitions)
+        public static LinkedList<BytecodeInstruction> Compute(MethodBody body, List<Variable> variables, Dictionary<Instruction, List<Variable>> uses, Dictionary<Instruction, List<Variable>> definitions)
         {
-            List<BytecodeInstruction> bytecodes = new List<BytecodeInstruction>();
+            LinkedList<BytecodeInstruction> bytecodes = new LinkedList<BytecodeInstruction>();
 
             var variableNameToVariable = variables.ToDictionary(variable => variable.Name);
 
@@ -32,13 +31,13 @@ namespace NetSsa.Analyses
                     bytecode.Result = cecilBytecodeDefinitions.SingleOrDefault();
                 }
 
-                bytecodes.Add(bytecode);
+                bytecodes.AddLast(bytecode);
             }
 
             return bytecodes;
         }
 
-        public static List<BytecodeInstruction> Compute(MethodBody body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions)
+        public static LinkedList<BytecodeInstruction> Compute(MethodBody body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions)
         {
             VariableDefUse.Compute(body, out variables, out uses, out definitions);
             return Bytecode.Compute(body, variables, uses, definitions);

@@ -17,7 +17,7 @@ Additionally, `net-ssa-cli` is a CLI application that works as a driver of the l
 
 ### Windows
 
-It has not been tested yet. However, it should work as long as Souffle can be installed. Souffle can run there using _Windows Subsystem_ for _Linux_.
+It has not been tested yet. However, it should work as long as Souffle can be installed. Souffle can run there using _Windows Subsystem for Linux_.
 
 ## Usage: Disassembling with net-ssa-cli
 
@@ -100,7 +100,7 @@ public void YourFunction(Mono.Cecil.MethodDefinition methodDefinition)
 {
 	Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;  
 	
-	List<NetSsa.Instructions.BytecodeInstruction> tac = 
+	LinkedList<NetSsa.Instructions.BytecodeInstruction> tac = 
 			Bytecode.Compute(
 			    body, 
 				out  List<NetSsa.Analyses.Variable> variables,
