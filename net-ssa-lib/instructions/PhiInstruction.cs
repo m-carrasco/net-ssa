@@ -17,7 +17,7 @@ namespace NetSsa.Instructions
                 pairs[i] = "(" + Operands[i].Name + "," + Incoming[i].Label() + ")";
             }
 
-            return Result.Name + " = phi [" + string.Join(",", pairs) + "]";
+            return Label() + ": " + Result.Name + " = phi [" + string.Join(",", pairs) + "]";
         }
 
         public override string Label()

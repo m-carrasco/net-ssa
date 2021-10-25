@@ -12,8 +12,9 @@ CHECK:	IL_000a: l0 = s0
 CHECK:	IL_000b: br IL_0013
 CHECK:	IL_0010: s0 = ldc.i4.s 10
 CHECK:	IL_0012: l0 = s0
-CHECK:	s0 = phi [(s0,IL_000b),(s0,IL_0012)]
-CHECK:	l0 = phi [(l0,IL_000b),(l0,IL_0012)]
+CHECK:	PHI_0000: s0 = phi [(s0,IL_000b),(s0,IL_0012)]
+CHECK:	PHI_0001: l0 = phi [(l0,IL_000b),(l0,IL_0012)]
+
 CHECK:	IL_0013: s0 = l0
 CHECK:	IL_0014: ret s0
 */
