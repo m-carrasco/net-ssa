@@ -106,10 +106,6 @@ namespace UnitTest
             var methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
             var computedVarDef = SsaFacts.VarDef(methodDefinition.Body);
             var expected = new List<(String, String)>() {
-                ("l0","IL_000a"),
-                ("l0","IL_000e"),
-                ("l1","IL_0005"),
-                ("l2","IL_0010"),
                 ("s0","IL_0001"),
                 ("s0","IL_000d"),
                 ("s0","IL_0013"),
@@ -136,7 +132,7 @@ namespace UnitTest
 
             SsaQuery.Query(start, successor, exceptionalSuccessor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edge);
 
-            Assert.True(phiLocation.Contains(("l0", "IL_000f")));
+            Assert.AreEqual(phiLocation.Count(), 1);
         }
 
         [Test]
