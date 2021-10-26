@@ -37,7 +37,7 @@ namespace NetSsa.Analyses
                 int stack_size = kv.Value;
 
                 // Analyze which stack slots are consumed
-                int popDelta = ComputePopDelta(instruction, IsReturnTypeVoid(body));
+                int popDelta = ComputePopDelta(instruction, IsReturnTypeVoid(body), stack_size);
                 uses[instruction] = Enumerable.Range(stack_size - popDelta, popDelta).Select(index => stackVariables[index]).ToList();
 
                 int pushDelta = ComputePushDelta(instruction);
@@ -309,7 +309,7 @@ namespace NetSsa.Analyses
 
         static void ComputeStackDelta(Instruction instruction, ref int stack_size, bool returnVoid)
         {
-            int popDelta = ComputePopDelta(instruction, returnVoid);
+            int popDelta = ComputePopDelta(instruction, returnVoid, stack_size);
             stack_size -= popDelta;
             int pushDelta = ComputePushDelta(instruction);
             stack_size += pushDelta;
@@ -361,7 +361,7 @@ namespace NetSsa.Analyses
             }
         }
 
-        static int ComputePopDelta(Instruction instruction, bool returnVoid)
+        static int ComputePopDelta(Instruction instruction, bool returnVoid, int stack_size)
         {
             switch (instruction.OpCode.FlowControl)
             {
@@ -385,14 +385,14 @@ namespace NetSsa.Analyses
                     if (instruction.OpCode.Code == OpCodes.Endfinally.Code ||
                         instruction.OpCode.Code == OpCodes.Endfilter.Code)
                     {
-                        return ComputePopDelta(instruction.OpCode.StackBehaviourPop);
+                        return ComputePopDelta(instruction.OpCode.StackBehaviourPop, stack_size);
                     }
                     return returnVoid ? 0 : 1;
                 default:
-                    return ComputePopDelta(instruction.OpCode.StackBehaviourPop);
+                    return ComputePopDelta(instruction.OpCode.StackBehaviourPop, stack_size);
             }
         }
-        static int ComputePopDelta(StackBehaviour pop_behavior)
+        static int ComputePopDelta(StackBehaviour pop_behavior, int stack_size)
         {
             switch (pop_behavior)
             {
@@ -417,7 +417,7 @@ namespace NetSsa.Analyses
                 case StackBehaviour.Popref_popi_popref:
                     return 3;
                 case StackBehaviour.PopAll:
-                    return 0;
+                    return stack_size;
                 default:
                     return 0;
             }
