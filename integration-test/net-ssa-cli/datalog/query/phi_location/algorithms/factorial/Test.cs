@@ -5,9 +5,6 @@
 // CHECK: phi_location: 
 // CHECK: 	s0 IL_001a
 // CHECK: 	s1 IL_001a
-// CHECK: 	l0 IL_001a
-// CHECK: 	l1 IL_001a
-
 public class Test
 {
     public static int Factorial(int a)

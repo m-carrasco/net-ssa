@@ -5,7 +5,6 @@
 // CHECK: phi_location: 
 // CHECK:   s0 IL_000c
 // CHECK:   s1 IL_000c
-// CHECK:   a0 IL_000c
 
 public class Test
 {

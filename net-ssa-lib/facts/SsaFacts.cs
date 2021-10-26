@@ -56,7 +56,7 @@ namespace NetSsa.Facts
         public static IEnumerable<(String, String)> VarDef(MethodBody methodBody)
         {
             VariableDefUse.Compute(methodBody, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
-
+            IR.VariableDefinitionsToUses(uses, definitions);
             return VarDef(definitions, uses, methodBody.Instructions);
         }
 

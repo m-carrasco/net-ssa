@@ -35,20 +35,21 @@ namespace NetSsa.Instructions
                 case Code.Ldarg_2:
                 case Code.Ldarg_3:
                 case Code.Ldarg_S:
+                case Code.Ldloc_0:
+                case Code.Ldloc_1:
+                case Code.Ldloc_2:
+                case Code.Ldloc_3:
+                case Code.Ldloc_S:
+                    return LoadVariable(label);
                 case Code.Stloc:
                 case Code.Stloc_0:
                 case Code.Stloc_1:
                 case Code.Stloc_2:
                 case Code.Stloc_3:
                 case Code.Stloc_S:
-                case Code.Ldloc_0:
-                case Code.Ldloc_1:
-                case Code.Ldloc_2:
-                case Code.Ldloc_3:
-                case Code.Ldloc_S:
                 case Code.Starg:
                 case Code.Starg_S:
-                    return VariableAssignment(label);
+                    return StoreVariable(label);
                 case Code.Add:
                     return BinaryOperation(label, "+");
                 case Code.Mul:
@@ -101,9 +102,19 @@ namespace NetSsa.Instructions
             return String.Format("{0}:{1} {2}{3}", label, result, instruction, operands).Trim();
         }
 
-        private string VariableAssignment(String label)
+        private string StoreVariable(String label)
         {
-            return String.Format("{0}: {1} = {2}", label, Result.Name, Operands[0].Name);
+            if (Operands.Count == 2)
+            {
+                return String.Format("{0}: store {1}, {2}", label, Operands[0].Name, Operands[1].Name);
+            }
+
+            return String.Format("{0}: {1} = {2} [store]", label, Result.Name, Operands[0].Name);
+        }
+
+        private string LoadVariable(String label)
+        {
+            return String.Format("{0}: {1} = {2} [load]", label, Result.Name, Operands[0].Name);
         }
         private string TakeVariableAddress(String label)
         {

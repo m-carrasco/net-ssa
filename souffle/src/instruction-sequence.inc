@@ -70,18 +70,22 @@
 
     // b is a's successor
     .decl successor(a:Instruction, b:Instruction)
-    // if an exception is thrown while executing a, b is a's successor
-    .decl exceptional_successor(a:Instruction, b:Instruction)
+
+    .decl instruction(a:Instruction)
+    instruction(a) :- successor(a, _).
+    instruction(a) :- successor(_, a).
+
+    .decl no_predecessor(x:Instruction)
+    no_predecessor(x) :- instruction(x), s = count : { successor(_, x) }, s = 0.
 
     .override edge
+    edge(x, y) :- start(x), no_predecessor(y).
     edge(x, y) :- successor(x, y).
-    edge(x, y) :- exceptional_successor(x, y).
-    // Depending on the sort of analysis that is performed,
-    // control flow may be thought in this way. For phi nodes calculation it should not
-    // be necessary.
-    // edge(x, y) :- node(x), node(y), node(z), edge(x, z), exceptional_successor(z, y).
 
     .decl phi_location(v : Variable , m : Instruction)
     phi_location(v, i) :- var_def(v, j), dom_frontier(j, i).
     phi_location(v, i) :- phi_location(v, n), dom_frontier(n, i).
+
+    // Fictional instruction
+    start("ENTRY").
 }

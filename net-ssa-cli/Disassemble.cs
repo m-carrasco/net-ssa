@@ -14,29 +14,36 @@ namespace NetSsaCli
 {
     class Disassemble
     {
+        enum DisassemblyType
+        {
+            Bytecode,
+            IR,
+            Ssa
+        }
+
         public static void AddDisassasembleSubCommand(RootCommand rootCommand)
         {
             var disassemble = new Command("disassemble");
 
-            var ssa = new Option<bool>(
-                "--ssa",
-                getDefaultValue: () => false,
-                description: "Disassembled instructions are in SSA form.");
-            disassemble.AddOption(ssa);
+            var type = new Option<DisassemblyType>(
+                "--type",
+                getDefaultValue: () => DisassemblyType.Bytecode,
+                description: "Type of the dissasmbled code.");
+            disassemble.AddOption(type);
 
             var method = new Command("method");
             method.AddArgument(new Argument<String>("method", "Method to disassemble."));
-            method.Handler = CommandHandler.Create<FileInfo, bool, String>(PrintDisassemble);
+            method.Handler = CommandHandler.Create<FileInfo, DisassemblyType, String>(PrintDisassemble);
             disassemble.AddCommand(method);
 
             var all = new Command("all", "All methods in the assembly are disassembled.");
-            all.Handler = CommandHandler.Create<FileInfo, bool>(PrintDisassemble);
+            all.Handler = CommandHandler.Create<FileInfo, DisassemblyType>(PrintDisassemble);
             disassemble.AddCommand(all);
 
             rootCommand.Add(disassemble);
         }
 
-        static void PrintDisassemble(FileInfo input, bool ssa, String method)
+        static void PrintDisassemble(FileInfo input, DisassemblyType type, String method)
         {
             using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(input.FullName))
             {
@@ -52,15 +59,22 @@ namespace NetSsaCli
                                 return;
                             }
 
+
                             LinkedList<BytecodeInstruction> tac = Bytecode.Compute(m.Body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
 
-                            if (ssa)
+                            if (DisassemblyType.Ssa.Equals(type))
                             {
+                                IR.VariableDefinitionsToUses(tac, uses, definitions);
                                 LinkedList<TacInstruction> ssaInstructions = SsaForm.InsertPhis(m, tac, variables, uses, definitions);
                                 Console.WriteLine(String.Join(System.Environment.NewLine, ssaInstructions.Select(t => "\t" + t.ToString())));
                             }
                             else
                             {
+                                if (DisassemblyType.IR.Equals(type))
+                                {
+                                    IR.VariableDefinitionsToUses(tac, uses, definitions);
+                                }
+
                                 Console.WriteLine(String.Join(System.Environment.NewLine, tac.Select(t => t.ToString())));
                             }
 
@@ -73,7 +87,7 @@ namespace NetSsaCli
             }
         }
 
-        static void PrintDisassemble(FileInfo input, bool ssa)
+        static void PrintDisassemble(FileInfo input, DisassemblyType type)
         {
             using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(input.FullName))
             {
@@ -90,14 +104,20 @@ namespace NetSsaCli
 
                         LinkedList<BytecodeInstruction> tac = Bytecode.Compute(m.Body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
 
-                        if (ssa)
+                        if (DisassemblyType.Ssa.Equals(type))
                         {
+                            IR.VariableDefinitionsToUses(tac, uses, definitions);
                             LinkedList<TacInstruction> ssaInstructions = SsaForm.InsertPhis(m, tac, variables, uses, definitions);
                             Console.WriteLine(String.Join(System.Environment.NewLine, ssaInstructions.Select(t => "\t" + t.ToString())));
                         }
                         else
                         {
-                            Console.WriteLine(String.Join(System.Environment.NewLine, tac.Select(t => "\t" + t.ToString())));
+                            if (DisassemblyType.IR.Equals(type))
+                            {
+                                IR.VariableDefinitionsToUses(tac, uses, definitions);
+                            }
+
+                            Console.WriteLine(String.Join(System.Environment.NewLine, tac.Select(t => t.ToString())));
                         }
                     }
                 }

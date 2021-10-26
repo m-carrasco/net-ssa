@@ -7,10 +7,8 @@
 //////////
 
 .init InstSeq = InstructionSequence
-.input InstSeq.start
 .input InstSeq.var_def
 .input InstSeq.successor
-.input InstSeq.exceptional_successor
 
 .decl dominators(n:Instruction,s:Instruction)
 .output dominators()

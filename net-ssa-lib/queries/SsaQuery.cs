@@ -41,12 +41,6 @@ namespace NetSsa.Queries
             String edgeFile = Path.Join(factsDirectory, "InstSeq.successor.facts");
             FileIO.WriteToFile(edgeFile, edgeFacts.Cast<ITuple>());
 
-            String exceptionalEdgeFile = Path.Join(factsDirectory, "InstSeq.exceptional_successor.facts");
-            FileIO.WriteToFile(exceptionalEdgeFile, exceptionalEdgeFacts.Cast<ITuple>());
-
-            String startFile = Path.Join(factsDirectory, "InstSeq.start.facts");
-            var startFacts = new List<Tuple<String>>() { startFact };
-            FileIO.WriteToFile(startFile, startFacts.Cast<ITuple>());
             String varDefFile = Path.Join(factsDirectory, "InstSeq.var_def.facts");
             FileIO.WriteToFile(varDefFile, varDefFacts.Cast<ITuple>());
 

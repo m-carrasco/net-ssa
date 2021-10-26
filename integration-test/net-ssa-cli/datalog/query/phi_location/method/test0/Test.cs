@@ -4,15 +4,8 @@
 // RUN: %FileCheck %s < %t.phi_location
 
 // CHECK: phi_location: 
-// CHECK: 	s0 IL_0011
-// CHECK: 	s0 IL_001c
 // CHECK: 	s0 IL_0022
-// CHECK: 	l0 IL_001c
-// CHECK: 	l0 IL_0022
-// CHECK: 	s1 IL_001c
 // CHECK: 	s1 IL_0022
-// CHECK: 	a0 IL_001c
-// CHECK: 	a0 IL_0022
 
 using System;
 
