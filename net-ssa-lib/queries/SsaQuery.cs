@@ -22,9 +22,7 @@ namespace NetSsa.Queries
             return ssaQueryBin;
         }
 
-        public static void Query(Tuple<String> startFact,
-                                IEnumerable<(String, String)> edgeFacts,
-                                IEnumerable<(String, String)> exceptionalEdgeFacts,
+        public static void Query(IEnumerable<(String, String)> edgeFacts,
                                 IEnumerable<(String, String)> varDefFacts,
                                 out IEnumerable<(String, String)> phiLocation,
                                 out IEnumerable<(String, String)> dominators,

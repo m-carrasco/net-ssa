@@ -21,10 +21,8 @@ namespace NetSsa.Transformations
             var body = method.Body;
             var varDef = SsaFacts.VarDef(definitions, uses, body.Instructions);
             var successor = SsaFacts.Successor(body);
-            var exceptionalSuccessor = SsaFacts.ExceptionalSuccessor(body);
-            var start = SsaFacts.Start(body);
 
-            SsaQuery.Query(start, successor, exceptionalSuccessor, varDef,
+            SsaQuery.Query(successor, varDef,
                          out IEnumerable<(String, String)> phiLocations,
                          out IEnumerable<(String, String)> dominators,
                          out IEnumerable<(String, String)> domFrontier,

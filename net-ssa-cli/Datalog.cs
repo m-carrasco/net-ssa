@@ -64,12 +64,10 @@ namespace NetSsaCli
             var varDef = SsaFacts.VarDef(body);
             var successor = SsaFacts.Successor(body);
             var exceptionalSuccessor = SsaFacts.ExceptionalSuccessor(body);
-            var start = SsaFacts.Start(body);
 
             PrintTuples(varDef, "var_def");
             PrintTuples(successor, "successor");
-            PrintTuples(exceptionalSuccessor, "exceptional_successor");
-            SsaQuery.Query(start, successor, exceptionalSuccessor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edges);
+            SsaQuery.Query(successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edges);
 
             PrintTuples(phiLocation, "phi_location");
             PrintTuples(dominators, "dominators");
@@ -88,7 +86,7 @@ namespace NetSsaCli
             PrintTuples(exceptional_successor, "exceptional_successor");
 
             // This is not the best because 'phi_locations' is calculated while 'edge' is only wanted.
-            SsaQuery.Query(start, successor, exceptional_successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edges);
+            SsaQuery.Query(successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edges);
 
             PrintTuples(edges, "edge");
         }
@@ -130,10 +128,8 @@ namespace NetSsaCli
             var body = m.Body;
             var varDef = SsaFacts.VarDef(body);
             var successor = SsaFacts.Successor(body);
-            var exceptionalSuccessor = SsaFacts.ExceptionalSuccessor(body);
-            var start = SsaFacts.Start(body);
 
-            SsaQuery.Query(start, successor, exceptionalSuccessor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edge);
+            SsaQuery.Query(successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edge);
 
             PrintTuples(phiLocation, "phi_location");
         }

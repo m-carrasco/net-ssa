@@ -127,10 +127,8 @@ namespace UnitTest
 
             var varDef = SsaFacts.VarDef(body);
             var successor = SsaFacts.Successor(body);
-            var exceptionalSuccessor = SsaFacts.ExceptionalSuccessor(body);
-            var start = SsaFacts.Start(body);
 
-            SsaQuery.Query(start, successor, exceptionalSuccessor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edge);
+            SsaQuery.Query(successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edge);
 
             Assert.AreEqual(phiLocation.Count(), 1);
         }
