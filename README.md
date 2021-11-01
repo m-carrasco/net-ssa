@@ -98,9 +98,8 @@ System.UInt32 Example::Factorial(System.UInt32)
 // Read Mono.Cecil documentation in order to learn how to load a MethodDefinition from an assembly.
 public void YourFunction(Mono.Cecil.MethodDefinition methodDefinition)
 {
-    Mono.Cecil.MethodDefinition methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
-    Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
-
+    Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;  
+	
     NetSsa.Analyses.BytecodeBody bytecodeBody = Bytecode.Compute(body);
 
     foreach (NetSsa.Instructions.BytecodeInstruction ins in bytecodeBody.Instructions)
