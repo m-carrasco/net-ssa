@@ -12,6 +12,7 @@
 
     // Non-dominance of input graph
     //
+    // non_dom(x,y) = "x is not_dom by y"
     .decl non_dom(s:N,d:N)
     non_dom(x,y) :- start(x), node(y), x!=y.
     non_dom(x,y) :- non_dom(z,y), edge(z,x), !start(x), x!=y .
@@ -19,12 +20,14 @@
     //
     // Dominance of input graph
     //
+    // non_dom(x,y) = "x is dom by y"
     .decl dom(s:N,d:N)
     dom(x,y) :- node(x), node(y), !non_dom(x,y).
 
     //
     // Finds nodes that strictly dominate a node
     //
+    // s_dom(x,y) = "x is s_dom by y"
     .decl s_dom(n:N,d:N)
     s_dom(n,d) :- dom(n,d), n != d.
 
@@ -51,6 +54,7 @@
     //
     // Immediate Dominator
     //
+    // imdom(x,y) = "x is imdom by y"
     .decl imdom(n:N,i:N)
     imdom(n,x) :- s_dom(n,x), s_domsize(x,s), s_max_domsize(n,s).
 
@@ -67,6 +71,7 @@
 
 .comp InstructionSequence  : DiGraph<Instruction> {
     .decl var_def(v : Variable , m : Instruction)
+    .decl entry_instruction(a:Instruction)
 
     // b is a's successor
     .decl successor(a:Instruction, b:Instruction)
@@ -75,11 +80,11 @@
     instruction(a) :- successor(a, _).
     instruction(a) :- successor(_, a).
 
-    .decl no_predecessor(x:Instruction)
-    no_predecessor(x) :- instruction(x), s = count : { successor(_, x) }, s = 0.
+    //.decl no_predecessor(x:Instruction)
+    //no_predecessor(x) :- instruction(x), s = count : { successor(_, x) }, s = 0.
 
     .override edge
-    edge(x, y) :- start(x), no_predecessor(y).
+    edge(x, y) :- start(x), entry_instruction(y).
     edge(x, y) :- successor(x, y).
 
     .decl phi_location(v : Variable , m : Instruction)

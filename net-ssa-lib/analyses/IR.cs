@@ -6,20 +6,25 @@ namespace NetSsa.Analyses
 {
     public class IR
     {
-        public static LinkedList<BytecodeInstruction> Compute(MethodBody body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions)
+        public static BytecodeBody Compute(MethodBody body)
         {
-            VariableDefUse.Compute(body, out variables, out uses, out definitions);
-            var r = Bytecode.Compute(body, variables, uses, definitions);
-            VariableDefinitionsToUses(r, uses, definitions);
-            return r;
+            VariableDefUse.Compute(body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
+            BytecodeBody bytecodeBody = Bytecode.Compute(body, variables, uses, definitions);
+            VariableDefinitionsToUses(bytecodeBody.Instructions);
+            return bytecodeBody;
         }
 
-        public static void VariableDefinitionsToUses(LinkedList<BytecodeInstruction> bytecodeInstructions, Dictionary<Instruction, List<Variable>> uses, Dictionary<Instruction, List<Variable>> definitions)
+        public static void VariableDefinitionsToUses(BytecodeBody bytecodeBody)
+        {
+            VariableDefinitionsToUses(bytecodeBody.Instructions);
+        }
+
+        public static void VariableDefinitionsToUses(LinkedList<BytecodeInstruction> bytecodeInstructions)
         {
             foreach (BytecodeInstruction bytecode in bytecodeInstructions)
             {
                 var cil = bytecode.Bytecode;
-                SwitchDefinitionToUse(cil, uses[cil], definitions[cil], ref bytecode.Result);
+                SwitchDefinitionToUse(cil, bytecode.Operands, new List<Variable>() { bytecode.Result }, ref bytecode.Result);
             }
         }
 

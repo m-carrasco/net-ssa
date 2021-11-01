@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Mono.Cecil.Cil;
 using NetSsa.Analyses;
+using NetSsa.Instructions;
 
 namespace NetSsa.Facts
 {
@@ -64,7 +65,6 @@ namespace NetSsa.Facts
         {
             foreach (Instruction instruction in instructions)
             {
-                var opcode = instruction.OpCode;
                 var currentLabel = Label(instruction);
 
                 foreach (Variable variable in definitions[instruction])
@@ -74,9 +74,40 @@ namespace NetSsa.Facts
             yield break;
         }
 
-        public static Tuple<String> Start(MethodBody methodBody)
+
+        public static IEnumerable<(String, String)> VarDef(LinkedList<BytecodeInstruction> instructions)
         {
-            return Tuple.Create<String>(Label(methodBody.Instructions.First()));
+            foreach (BytecodeInstruction instruction in instructions)
+            {
+                Variable result = instruction.Result;
+
+                if (result == null)
+                    continue;
+
+                var currentLabel = instruction.Label();
+                yield return (result.Name, currentLabel);
+            }
+
+            yield break;
+        }
+
+        public static IEnumerable<Tuple<String>> EntryInstruction(MethodBody methodBody)
+        {
+            yield return Tuple.Create<String>(Label(methodBody.Instructions.First()));
+
+            foreach (var exceptionHandler in methodBody.ExceptionHandlers)
+            {
+                var filterStart = exceptionHandler.FilterStart;
+                var handlerStart = exceptionHandler.HandlerStart;
+                if (filterStart != null)
+                {
+                    yield return Tuple.Create<String>(Label(filterStart));
+                }
+
+                yield return Tuple.Create<String>(Label(handlerStart));
+            }
+
+            yield break;
         }
     }
 }

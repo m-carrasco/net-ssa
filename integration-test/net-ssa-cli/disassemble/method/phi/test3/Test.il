@@ -2,16 +2,16 @@
 // RUN: SSA_QUERY_BIN=%ssa-query %net-ssa-cli %T/Test.dll disassemble --type Ssa all > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
-// CHECK: System.Int32 Test::Bar(System.Boolean)
-// CHECK: 	IL_0000: s0 = a0 [load]
-// CHECK: 	IL_0001: brfalse.s IL_0006 [s0]
-// CHECK: 	IL_0003: s0 = 1
+// CHECK: 	IL_0000: s0_0 = a0 [load]
+// CHECK: 	IL_0001: brfalse.s IL_0006 [s0_0]
+
+// CHECK: 	IL_0003: s0_2 = 1
 // CHECK: 	IL_0004: br.s IL_0007
-// CHECK: 	IL_0006: s0 = 2
-// CHECK: 	PHI_0000: s0 = phi [(s0,IL_0006),(s0,IL_0004)]
-// CHECK: 	IL_0007: ret s0
 
+// CHECK: 	IL_0006: s0_1 = 2
 
+// CHECK: 	PHI_0000: s0_3 = phi [(s0_1,IL_0006),(s0_2,IL_0004)]
+// CHECK: 	IL_0007: ret s0_3
 
 .assembly extern mscorlib
 {

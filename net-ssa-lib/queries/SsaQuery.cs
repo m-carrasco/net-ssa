@@ -22,19 +22,22 @@ namespace NetSsa.Queries
             return ssaQueryBin;
         }
 
-        public static void Query(IEnumerable<(String, String)> edgeFacts,
+        public static void Query(IEnumerable<Tuple<String>> entryInstructionFacts,
+                                IEnumerable<(String, String)> edgeFacts,
                                 IEnumerable<(String, String)> varDefFacts,
                                 out IEnumerable<(String, String)> phiLocation,
                                 out IEnumerable<(String, String)> dominators,
                                 out IEnumerable<(String, String)> domFrontier,
+                                out IEnumerable<(String, String)> imdom,
                                 out IEnumerable<(String, String)> edges)
         {
-
-
             String ssaQueryBin = GetSsaQueryBinPath();
 
             String factsDirectory = FileIO.GetTempDirectory("facts_directory");
             String outputDirectory = FileIO.GetTempDirectory("output_directory");
+
+            String entryInstructionFile = Path.Join(factsDirectory, "InstSeq.entry_instruction.facts");
+            FileIO.WriteToFile(entryInstructionFile, entryInstructionFacts.Cast<ITuple>());
 
             String edgeFile = Path.Join(factsDirectory, "InstSeq.successor.facts");
             FileIO.WriteToFile(edgeFile, edgeFacts.Cast<ITuple>());
@@ -55,6 +58,7 @@ namespace NetSsa.Queries
             dominators = FileIO.ReadFile(Path.Join(outputDirectory, "dominators.csv")).Cast<(String, String)>();
             domFrontier = FileIO.ReadFile(Path.Join(outputDirectory, "dom_frontier.csv")).Cast<(String, String)>();
             edges = FileIO.ReadFile(Path.Join(outputDirectory, "edge.csv")).Cast<(String, String)>();
+            imdom = FileIO.ReadFile(Path.Join(outputDirectory, "imdom.csv")).Cast<(String, String)>();
         }
     }
 }

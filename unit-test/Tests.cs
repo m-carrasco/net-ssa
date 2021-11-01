@@ -94,13 +94,6 @@ namespace UnitTest
         }
 
         [Test]
-        public void TestStart()
-        {
-            var methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
-            Assert.AreEqual(SsaFacts.Start(methodDefinition.Body), new Tuple<String>("IL_0000"));
-        }
-
-        [Test]
         public void TestVarDef()
         {
             var methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
@@ -128,7 +121,7 @@ namespace UnitTest
             var varDef = SsaFacts.VarDef(body);
             var successor = SsaFacts.Successor(body);
 
-            SsaQuery.Query(successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> edge);
+            SsaQuery.Query(SsaFacts.EntryInstruction(body), successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> imdom, out IEnumerable<(String, String)> edge);
 
             Assert.AreEqual(phiLocation.Count(), 1);
         }
@@ -141,9 +134,9 @@ namespace UnitTest
             Mono.Cecil.MethodDefinition methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
             Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
 
-            LinkedList<NetSsa.Instructions.BytecodeInstruction> tac = Bytecode.Compute(body, out List<Variable> variables, out Dictionary<Mono.Cecil.Cil.Instruction, List<Variable>> uses, out Dictionary<Mono.Cecil.Cil.Instruction, List<Variable>> definitions);
+            BytecodeBody bytecodeBody = Bytecode.Compute(body);
 
-            foreach (var ins in tac)
+            foreach (BytecodeInstruction ins in bytecodeBody.Instructions)
             {
                 Mono.Cecil.Cil.Instruction cil = ins.Bytecode;
                 Console.WriteLine("Opcode: " + cil.OpCode.Code);

@@ -6,9 +6,22 @@ using NetSsa.Instructions;
 
 namespace NetSsa.Analyses
 {
+    public class BytecodeBody
+    {
+        public MethodBody CilBody;
+        public List<Variable> Variables;
+
+        public List<Variable> Arguments
+        {
+            get { return Variables.Where(v => v.IsArgumentVariable()).ToList(); }
+        }
+
+        public LinkedList<BytecodeInstruction> Instructions;
+    }
+
     public class Bytecode
     {
-        public static LinkedList<BytecodeInstruction> Compute(MethodBody body, List<Variable> variables, Dictionary<Instruction, List<Variable>> uses, Dictionary<Instruction, List<Variable>> definitions)
+        public static BytecodeBody Compute(MethodBody body, List<Variable> variables, Dictionary<Instruction, List<Variable>> uses, Dictionary<Instruction, List<Variable>> definitions)
         {
             LinkedList<BytecodeInstruction> bytecodes = new LinkedList<BytecodeInstruction>();
 
@@ -34,12 +47,17 @@ namespace NetSsa.Analyses
                 bytecodes.AddLast(bytecode);
             }
 
-            return bytecodes;
+            return new BytecodeBody()
+            {
+                CilBody = body,
+                Instructions = bytecodes,
+                Variables = variables
+            };
         }
 
-        public static LinkedList<BytecodeInstruction> Compute(MethodBody body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions)
+        public static BytecodeBody Compute(MethodBody body)
         {
-            VariableDefUse.Compute(body, out variables, out uses, out definitions);
+            VariableDefUse.Compute(body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
             return Bytecode.Compute(body, variables, uses, definitions);
         }
     }

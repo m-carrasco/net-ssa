@@ -8,7 +8,6 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using NetSsa.Analyses;
 using NetSsa.Instructions;
-using NetSsa.Transformations;
 
 namespace NetSsaCli
 {
@@ -59,25 +58,21 @@ namespace NetSsaCli
                                 return;
                             }
 
+                            BytecodeBody bytecodeBody = Bytecode.Compute(m.Body);
 
-                            LinkedList<BytecodeInstruction> tac = Bytecode.Compute(m.Body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
+                            if (DisassemblyType.IR.Equals(type) || DisassemblyType.Ssa.Equals(type))
+                            {
+                                IR.VariableDefinitionsToUses(bytecodeBody);
+                            }
 
                             if (DisassemblyType.Ssa.Equals(type))
                             {
-                                IR.VariableDefinitionsToUses(tac, uses, definitions);
-                                LinkedList<TacInstruction> ssaInstructions = SsaForm.InsertPhis(m, tac, variables, uses, definitions);
-                                Console.WriteLine(String.Join(System.Environment.NewLine, ssaInstructions.Select(t => "\t" + t.ToString())));
-                            }
-                            else
-                            {
-                                if (DisassemblyType.IR.Equals(type))
-                                {
-                                    IR.VariableDefinitionsToUses(tac, uses, definitions);
-                                }
-
-                                Console.WriteLine(String.Join(System.Environment.NewLine, tac.Select(t => t.ToString())));
+                                SsaBody ssaBody = Ssa.Compute(m, bytecodeBody);
+                                Console.WriteLine(String.Join(System.Environment.NewLine, ssaBody.Instructions.Select(t => "\t" + t.ToString())));
+                                return;
                             }
 
+                            Console.WriteLine(String.Join(System.Environment.NewLine, bytecodeBody.Instructions.Select(t => t.ToString())));
                             return;
                         }
                     }
@@ -102,23 +97,21 @@ namespace NetSsaCli
                             continue;
                         }
 
-                        LinkedList<BytecodeInstruction> tac = Bytecode.Compute(m.Body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
+                        BytecodeBody bytecodeBody = Bytecode.Compute(m.Body);
+
+                        if (DisassemblyType.IR.Equals(type) || DisassemblyType.Ssa.Equals(type))
+                        {
+                            IR.VariableDefinitionsToUses(bytecodeBody);
+                        }
 
                         if (DisassemblyType.Ssa.Equals(type))
                         {
-                            IR.VariableDefinitionsToUses(tac, uses, definitions);
-                            LinkedList<TacInstruction> ssaInstructions = SsaForm.InsertPhis(m, tac, variables, uses, definitions);
-                            Console.WriteLine(String.Join(System.Environment.NewLine, ssaInstructions.Select(t => "\t" + t.ToString())));
+                            SsaBody ssaBody = Ssa.Compute(m, bytecodeBody);
+                            Console.WriteLine(String.Join(System.Environment.NewLine, ssaBody.Instructions.Select(t => "\t" + t.ToString())));
+                            continue;
                         }
-                        else
-                        {
-                            if (DisassemblyType.IR.Equals(type))
-                            {
-                                IR.VariableDefinitionsToUses(tac, uses, definitions);
-                            }
 
-                            Console.WriteLine(String.Join(System.Environment.NewLine, tac.Select(t => t.ToString())));
-                        }
+                        Console.WriteLine(String.Join(System.Environment.NewLine, bytecodeBody.Instructions.Select(t => t.ToString())));
                     }
                 }
             }
