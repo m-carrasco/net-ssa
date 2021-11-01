@@ -98,29 +98,26 @@ System.UInt32 Example::Factorial(System.UInt32)
 // Read Mono.Cecil documentation in order to learn how to load a MethodDefinition from an assembly.
 public void YourFunction(Mono.Cecil.MethodDefinition methodDefinition)
 {
-	Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;  
-	
-	LinkedList<NetSsa.Instructions.BytecodeInstruction> tac = 
-			Bytecode.Compute(
-			    body, 
-				out  List<NetSsa.Analyses.Variable> variables,
-				out  Dictionary<Mono.Cecil.Cil.Instruction, List<NetSsa.Analyses.Variable>> uses,
-				out  Dictionary<Mono.Cecil.Cil.Instruction, List<NetSsa.Analyses.Variable>> definitions);
+    Mono.Cecil.MethodDefinition methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
+    Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
 
-	foreach (var ins in tac)
-	{
-		Mono.Cecil.Cil.Instruction  cil = ins.Bytecode;
-		Console.WriteLine("Opcode: " + cil.OpCode.Code);
-		foreach (NetSsa.Analyses.Variable  op  in  ins.Operands)
-		{
-			Console.WriteLine("Operand: " + op.Name);
-		}
+    NetSsa.Analyses.BytecodeBody bytecodeBody = Bytecode.Compute(body);
 
-	 	if (ins.Result != null)
-		{
-			Console.WriteLine("Result: " + ins.Result.Name);
-		}
-	}
+    foreach (NetSsa.Instructions.BytecodeInstruction ins in bytecodeBody.Instructions)
+    {
+        Mono.Cecil.Cil.Instruction cil = ins.Bytecode;
+        Console.WriteLine("Opcode: " + cil.OpCode.Code);
+
+        foreach (NetSsa.Analyses.Variable op in ins.Operands)
+        {
+            Console.WriteLine("Operand: " + op.Name);
+        }
+
+        if (ins.Result != null)
+        {
+            Console.WriteLine("Result: " + ins.Result.Name);
+        }
+    }
 }
 ```
 ## Contributing

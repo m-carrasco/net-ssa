@@ -134,9 +134,9 @@ namespace UnitTest
             Mono.Cecil.MethodDefinition methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
             Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
 
-            BytecodeBody bytecodeBody = Bytecode.Compute(body);
+            NetSsa.Analyses.BytecodeBody bytecodeBody = Bytecode.Compute(body);
 
-            foreach (BytecodeInstruction ins in bytecodeBody.Instructions)
+            foreach (NetSsa.Instructions.BytecodeInstruction ins in bytecodeBody.Instructions)
             {
                 Mono.Cecil.Cil.Instruction cil = ins.Bytecode;
                 Console.WriteLine("Opcode: " + cil.OpCode.Code);
