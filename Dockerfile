@@ -14,7 +14,7 @@ RUN cd net-ssa && \
     mkdir build && \
     cd build && \
     cmake .. && \
-    make build-dotnet && \
     make build-souffle && \
+    make build-dotnet && \
     make check-unit-test && \
     lit ./integration-test -vv

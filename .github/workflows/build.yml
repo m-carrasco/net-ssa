@@ -52,8 +52,8 @@ jobs:
     - name: Build
       run: |
         cd build
-        make build-dotnet
         make build-souffle
+        make build-dotnet
     - name: Unit test
       run: |
         cd build
