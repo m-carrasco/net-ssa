@@ -22,7 +22,7 @@ namespace NetSsaCli
             {
                 Arity = ArgumentArity.ExactlyOne
             };
-            query.FromAmong(new String[] { "phi_location", "edge" });
+            query.FromAmong(new String[] { "phi_location" });
             datalog.AddArgument(query);
 
             var method = new Command("method");
@@ -51,9 +51,6 @@ namespace NetSsaCli
                     case "phi_location":
                         PhiLocMethod(m);
                         break;
-                    case "edge":
-                        EdgeMethod(m);
-                        break;
                 }
             });
         }
@@ -63,33 +60,15 @@ namespace NetSsaCli
             var body = m.Body;
             var varDef = SsaFacts.VarDef(body);
             var successor = SsaFacts.Successor(body);
-            var exceptionalSuccessor = SsaFacts.ExceptionalSuccessor(body);
             var entryInstruction = SsaFacts.EntryInstruction(body);
 
             PrintTuples(varDef, "var_def");
             PrintTuples(successor, "successor");
-            SsaQuery.Query(entryInstruction, successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> imdom, out IEnumerable<(String, String)> edges);
 
-            PrintTuples(phiLocation, "phi_location");
-            PrintTuples(dominators, "dominators");
-            PrintTuples(domFrontier, "dominance_frontier");
-        }
+            var result = SsaQuery.Query(entryInstruction, successor, varDef);
 
-        static void EdgeMethod(MethodDefinition m)
-        {
-            var body = m.Body;
-            var varDef = SsaFacts.VarDef(body);
-            var successor = SsaFacts.Successor(body);
-            var exceptional_successor = SsaFacts.ExceptionalSuccessor(body);
-            var entryInstruction = SsaFacts.EntryInstruction(body);
-
-            PrintTuples(successor, "successor");
-            PrintTuples(exceptional_successor, "exceptional_successor");
-
-            // This is not the best because 'phi_locations' is calculated while 'edge' is only wanted.
-            SsaQuery.Query(entryInstruction, successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> imdom, out IEnumerable<(String, String)> edges);
-
-            PrintTuples(edges, "edge");
+            PrintTuples(result.PhiLocation, "phi_location");
+            PrintTuples(result.ImmediateDominator, "imdom");
         }
 
         static void PrintTuples(IEnumerable<(string, string)> tuples, string name)
@@ -115,9 +94,6 @@ namespace NetSsaCli
                     case "phi_location":
                         PhiLocAll(m);
                         break;
-                    case "edge":
-                        EdgeMethod(m);
-                        break;
                 }
             });
         }
@@ -130,9 +106,9 @@ namespace NetSsaCli
             var varDef = SsaFacts.VarDef(body);
             var successor = SsaFacts.Successor(body);
 
-            SsaQuery.Query(SsaFacts.EntryInstruction(body), successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> imdom, out IEnumerable<(String, String)> edge);
+            var result = SsaQuery.Query(SsaFacts.EntryInstruction(body), successor, varDef);
 
-            PrintTuples(phiLocation, "phi_location");
+            PrintTuples(result.PhiLocation, "phi_location");
         }
     }
 }

@@ -26,7 +26,7 @@ add_custom_target(build-dotnet
     )
 
 add_custom_target(check-unit-test
-    COMMAND SSA_QUERY_BIN=${QUERY_OUTPUT_EXECUTABLE} ${DOTNET_COMMAND} test --verbosity normal
+    COMMAND ${DOTNET_COMMAND} test --verbosity normal
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 

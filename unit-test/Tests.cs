@@ -121,9 +121,9 @@ namespace UnitTest
             var varDef = SsaFacts.VarDef(body);
             var successor = SsaFacts.Successor(body);
 
-            SsaQuery.Query(SsaFacts.EntryInstruction(body), successor, varDef, out IEnumerable<(String, String)> phiLocation, out IEnumerable<(String, String)> dominators, out IEnumerable<(String, String)> domFrontier, out IEnumerable<(String, String)> imdom, out IEnumerable<(String, String)> edge);
+            var result = SsaQuery.Query(SsaFacts.EntryInstruction(body), successor, varDef);
 
-            Assert.AreEqual(phiLocation.Count(), 1);
+            Assert.AreEqual(result.PhiLocation.Count(), 1);
         }
 
         [Test]

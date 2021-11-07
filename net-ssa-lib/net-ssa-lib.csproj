@@ -9,4 +9,8 @@
     <PackageReference Include="Mono.Cecil" Version="0.11.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\build\bin\souffle\ssa-query" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
 </Project>

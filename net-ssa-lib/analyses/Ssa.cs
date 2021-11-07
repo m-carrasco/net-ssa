@@ -31,11 +31,17 @@ namespace NetSsa.Analyses
     {
         public static SsaBody Compute(MethodDefinition method, BytecodeBody bytecodeBody)
         {
-            LinkedList<TacInstruction> ssaInstructions = InsertPhis(method, bytecodeBody, out IEnumerable<(String, String)> imdom, out IEnumerable<(String, String)> edge, out Dictionary<String, LinkedListNode<TacInstruction>> labelToInstruction);
+            var varDef = SsaFacts.VarDef(bytecodeBody.Instructions);
+            var entryInstructions = SsaFacts.EntryInstruction(method.Body);
+            var successor = SsaFacts.Successor(method.Body);
 
-            Dictionary<BytecodeInstruction, ISet<LinkedListNode<TacInstruction>>> successors = Successors(edge, labelToInstruction);
+            SsaQuery.Result ssaResult = SsaQuery.Query(entryInstructions, successor, varDef);
+
+            LinkedList<TacInstruction> ssaInstructions = InsertPhis(bytecodeBody, ssaResult, successor, out Dictionary<String, LinkedListNode<TacInstruction>> labelToInstruction);
+
+            Dictionary<BytecodeInstruction, ISet<LinkedListNode<TacInstruction>>> successors = Successors(successor, labelToInstruction);
             List<Variable> newVariables = new List<Variable>();
-            Rename(ssaInstructions, bytecodeBody.Variables, newVariables, imdom, labelToInstruction, successors);
+            Rename(ssaInstructions, bytecodeBody.Variables, newVariables, ssaResult.ImmediateDominator, labelToInstruction, successors);
 
             // Map a variable to the unique instruction that defines it
             Dictionary<Variable, LinkedListNode<TacInstruction>> definitions = new Dictionary<Variable, LinkedListNode<TacInstruction>>();
@@ -128,11 +134,6 @@ namespace NetSsa.Analyses
 
             foreach ((String, String) e in edges)
             {
-                if (e.Item1.Equals("ENTRY"))
-                {
-                    continue;
-                }
-
                 LinkedListNode<TacInstruction> source = labelToInstruction[e.Item1];
                 LinkedListNode<TacInstruction> target = labelToInstruction[e.Item2];
 
@@ -149,25 +150,13 @@ namespace NetSsa.Analyses
             return result;
         }
 
-        public static LinkedList<TacInstruction> InsertPhis(MethodDefinition method,
+        public static LinkedList<TacInstruction> InsertPhis(
                                     BytecodeBody bytecodeBody,
-                                    out IEnumerable<(String, String)> imdom,
-                                    out IEnumerable<(String, String)> edge,
+                                    SsaQuery.Result ssaQuery,
+                                    IEnumerable<(String, String)> successor,
                                     out Dictionary<String, LinkedListNode<TacInstruction>> labelToInstruction)
         {
             LinkedList<BytecodeInstruction> instructions = bytecodeBody.Instructions;
-
-            var body = method.Body;
-            var varDef = SsaFacts.VarDef(instructions);
-            var successor = SsaFacts.Successor(body);
-            var entryInstructions = SsaFacts.EntryInstruction(body);
-
-            SsaQuery.Query(entryInstructions, successor, varDef,
-                         out IEnumerable<(String, String)> phiLocations,
-                         out IEnumerable<(String, String)> dominators,
-                         out IEnumerable<(String, String)> domFrontier,
-                         out imdom,
-                         out edge);
 
             LinkedList<TacInstruction> result = new LinkedList<TacInstruction>();
             foreach (var i in instructions)
@@ -175,12 +164,12 @@ namespace NetSsa.Analyses
                 result.AddLast(i);
             }
 
-            Dictionary<String, ISet<String>> predecessors = Predecessors(edge);
+            Dictionary<String, ISet<String>> predecessors = Predecessors(successor);
             Dictionary<String, LinkedListNode<TacInstruction>> labelToBytecode = LabelToBytecode(result);
             Dictionary<String, Variable> nameToVariable = NameToVariable(bytecodeBody.Variables);
 
             uint id = 0;
-            foreach ((String, String) phiLocation in phiLocations)
+            foreach ((String, String) phiLocation in ssaQuery.PhiLocation)
             {
                 String variableName = phiLocation.Item1;
                 String locationLabel = phiLocation.Item2;

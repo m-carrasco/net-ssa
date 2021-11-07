@@ -80,9 +80,6 @@
     instruction(a) :- successor(a, _).
     instruction(a) :- successor(_, a).
 
-    //.decl no_predecessor(x:Instruction)
-    //no_predecessor(x) :- instruction(x), s = count : { successor(_, x) }, s = 0.
-
     .override edge
     edge(x, y) :- start(x), entry_instruction(y).
     edge(x, y) :- successor(x, y).

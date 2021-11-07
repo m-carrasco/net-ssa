@@ -4,37 +4,43 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Reflection;
 using NetSsa.IO;
 
 namespace NetSsa.Queries
 {
     public class SsaQuery
     {
+        public static readonly String SsaQueryBinPath = GetSsaQueryBinPath();
         public static String GetSsaQueryBinPath()
         {
-            String ssaQueryBin = Path.GetFullPath(Environment.GetEnvironmentVariable("SSA_QUERY_BIN"));
-
-            if (!File.Exists(ssaQueryBin))
+            string directory = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
+            string result = Path.Combine(directory, "ssa-query");
+            if (!File.Exists(result))
             {
-                throw new FileNotFoundException("Ssa query bin is not found: " + ssaQueryBin, ssaQueryBin);
+                throw new FileNotFoundException(result);
             }
 
-            return ssaQueryBin;
+            return result;
         }
 
-        public static void Query(IEnumerable<Tuple<String>> entryInstructionFacts,
-                                IEnumerable<(String, String)> edgeFacts,
-                                IEnumerable<(String, String)> varDefFacts,
-                                out IEnumerable<(String, String)> phiLocation,
-                                out IEnumerable<(String, String)> dominators,
-                                out IEnumerable<(String, String)> domFrontier,
-                                out IEnumerable<(String, String)> imdom,
-                                out IEnumerable<(String, String)> edges)
+        public class Result
         {
-            String ssaQueryBin = GetSsaQueryBinPath();
+            public IEnumerable<(String, String)> PhiLocation;
+            public IEnumerable<(String, String)> ImmediateDominator;
+        }
 
-            String factsDirectory = FileIO.GetTempDirectory("facts_directory");
-            String outputDirectory = FileIO.GetTempDirectory("output_directory");
+        public static Result Query(IEnumerable<Tuple<String>> entryInstructionFacts,
+                                IEnumerable<(String, String)> edgeFacts,
+                                IEnumerable<(String, String)> varDefFacts)
+        {
+            String ssaQueryBin = SsaQuery.SsaQueryBinPath;
+
+            DirectoryInfo directory = FileIO.GetTempDirectory();
+
+            String factsDirectory = Directory.CreateDirectory(Path.Combine(new string[] { directory.FullName, "facts_directory" })).FullName;
+            String outputDirectory = Directory.CreateDirectory(Path.Combine(new string[] { directory.FullName, "output_directory" })).FullName;
 
             String entryInstructionFile = Path.Join(factsDirectory, "InstSeq.entry_instruction.facts");
             FileIO.WriteToFile(entryInstructionFile, entryInstructionFacts.Cast<ITuple>());
@@ -53,12 +59,14 @@ namespace NetSsa.Queries
                 throw new SsaQueryException(ssaQueryBin, arguments, process.StandardError.ReadToEnd());
             }
 
-            // process files
-            phiLocation = FileIO.ReadFile(Path.Join(outputDirectory, "phi_location.csv")).Cast<(String, String)>();
-            dominators = FileIO.ReadFile(Path.Join(outputDirectory, "dominators.csv")).Cast<(String, String)>();
-            domFrontier = FileIO.ReadFile(Path.Join(outputDirectory, "dom_frontier.csv")).Cast<(String, String)>();
-            edges = FileIO.ReadFile(Path.Join(outputDirectory, "edge.csv")).Cast<(String, String)>();
-            imdom = FileIO.ReadFile(Path.Join(outputDirectory, "imdom.csv")).Cast<(String, String)>();
+            Result result = new Result();
+            result.PhiLocation = FileIO.ReadFile(Path.Join(outputDirectory, "phi_location.csv")).Cast<(String, String)>();
+            result.ImmediateDominator = FileIO.ReadFile(Path.Join(outputDirectory, "imdom.csv")).Cast<(String, String)>();
+
+            // Delete folder and do not block while doing it
+            Task.Run(() => { Directory.Delete(directory.FullName, true); });
+
+            return result;
         }
     }
 }

@@ -1,5 +1,5 @@
 // RUN: %mcs -target:library -out:%T/Test.dll %s
-// RUN: SSA_QUERY_BIN=%ssa-query %net-ssa-cli %T/Test.dll datalog phi_location method "System.Int32 Test::Foo(System.Int32)" > %t.phi_location
+// RUN:  %net-ssa-cli %T/Test.dll datalog phi_location method "System.Int32 Test::Foo(System.Int32)" > %t.phi_location
 
 // RUN: %FileCheck %s < %t.phi_location
 

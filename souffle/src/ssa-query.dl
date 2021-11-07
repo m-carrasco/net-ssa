@@ -11,14 +11,6 @@
 .input InstSeq.successor
 .input InstSeq.entry_instruction
 
-.decl dominators(n:Instruction,s:Instruction)
-.output dominators()
-dominators(n,s) :- InstSeq.dom(n,s).
-
-.decl dom_frontier(n:Instruction,s:Instruction)
-.output dom_frontier()
-dom_frontier(n,s) :- InstSeq.dom_frontier(n,s).
-
 .decl imdom(n:Instruction,s:Instruction)
 .output imdom()
 imdom(n,s) :- InstSeq.imdom(n,s).
@@ -26,7 +18,3 @@ imdom(n,s) :- InstSeq.imdom(n,s).
 .decl phi_location(v : Variable , m : Instruction)
 .output phi_location()
 phi_location(v, i) :- InstSeq.phi_location(v, i).
-
-.decl edge(v : Instruction , m : Instruction)
-.output edge()
-edge(v, m) :- InstSeq.edge(v, m).

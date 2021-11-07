@@ -1,4 +1,4 @@
-// RUN: SSA_QUERY_BIN=%ssa-query %net-ssa-cli /usr/lib/mono/4.5/mscorlib.dll disassemble --type Ssa all > %t.disassemble
+// RUN:  %net-ssa-cli /usr/lib/mono/4.5/mscorlib.dll disassemble --type Ssa all > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
 /*
@@ -37,7 +37,7 @@ CHECK: IL_001d: br.s IL_0020
 
 CHECK: IL_001f: s1_14 = 0
 
-CHECK: PHI_0005: s1_17 = phi [(s1_14,IL_001f),(s1_16,IL_001d)]
+CHECK: PHI_0005: s1_17 = phi [(s1_16,IL_001d),(s1_14,IL_001f)]
 CHECK: IL_0020: stind.i4 [s0_19, s1_17]
 CHECK: IL_0021: br.s IL_003d
 

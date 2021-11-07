@@ -1,5 +1,5 @@
 // RUN: %mcs -target:library -out:%T/Test.dll %s
-// RUN: SSA_QUERY_BIN=%ssa-query %net-ssa-cli %T/Test.dll disassemble --type Ssa method "System.Int32 Test::Foo(System.Boolean)" > %t.disassemble
+// RUN:  %net-ssa-cli %T/Test.dll disassemble --type Ssa method "System.Int32 Test::Foo(System.Boolean)" > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
 /*

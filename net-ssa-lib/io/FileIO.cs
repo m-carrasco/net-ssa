@@ -12,11 +12,16 @@ namespace NetSsa.IO
         /*
             Returns the path of the newly created directory under Path.GetTempPath()
         */
-        public static String GetTempDirectory(String dirName)
+        public static DirectoryInfo GetTempDirectory()
         {
-            var path = Path.Combine(new String[] { Path.GetTempPath(), Path.GetRandomFileName(), dirName });
-            Directory.CreateDirectory(path);
-            return path;
+            string path = null;
+
+            do
+            {
+                path = Path.Combine(new String[] { Path.GetTempPath(), Path.GetRandomFileName() });
+            } while (File.Exists(path));
+
+            return Directory.CreateDirectory(path);
         }
 
         private static String COLUMN_SEPARATOR = "	";
@@ -34,7 +39,7 @@ namespace NetSsa.IO
 
         public static IEnumerable<ITuple> ReadFile(String filePath)
         {
-            return File.ReadLines(filePath).Select(line => CreateTuple(line.Split(COLUMN_SEPARATOR)));
+            return File.ReadAllLines(filePath).Select(line => CreateTuple(line.Split(COLUMN_SEPARATOR)));
         }
 
         private static ITuple CreateTuple(String[] elements)
