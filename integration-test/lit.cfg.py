@@ -17,6 +17,10 @@ config.substitutions.append(('%ssa-query', os.path.join(config.souffle_bin_dir, 
 config.substitutions.append(('%net-ssa-cli', os.path.join(config.net_ssa_bin_dir, "net-ssa-cli")))
 config.substitutions.append(('%FileCheck', os.path.join(config.llvm_bin_dir, "FileCheck")))
 
+# This is useful if a custom dotnet installation is used.
+if os.environ.get('DOTNET_ROOT') is not None:
+    config.environment['DOTNET_ROOT'] = os.environ.get('DOTNET_ROOT')
+
 def _clean_test_directory(directory):
     for entry in os.scandir(directory):
         basename = os.path.basename(entry.path)
