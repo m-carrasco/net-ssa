@@ -66,14 +66,14 @@ jobs:
         cd build
         make build-souffle
         make build-dotnet
-    #- name: Unit test
-    #  run: |
-    #    cd build
-    #    make check-unit-test
-    #- name: Integration test
-    #  run: |
-    #    cd build
-    #    lit integration-test -v
+    - name: Unit test
+      run: |
+        cd build
+        make check-unit-test
+    - name: Integration test
+      run: |
+        cd build
+        lit integration-test -v
     - name: Generate nuget packages
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       run: |
