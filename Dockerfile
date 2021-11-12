@@ -1,5 +1,5 @@
 ARG REPO=mcr.microsoft.com/dotnet/sdk
-FROM $REPO:5.0-focal
+FROM $REPO:6.0-focal
 
 COPY . /net-ssa
 
