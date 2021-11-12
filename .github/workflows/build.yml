@@ -66,10 +66,10 @@ jobs:
         cd build
         make build-souffle
         make build-dotnet
-    - name: Unit test
-      run: |
-        cd build
-        make check-unit-test
+    #- name: Unit test
+    #  run: |
+    #    cd build
+    #    make check-unit-test
     #- name: Integration test
     #  run: |
     #    cd build
