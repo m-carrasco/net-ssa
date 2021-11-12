@@ -24,7 +24,7 @@ jobs:
       uses: gittools/actions/gitversion/execute@v0.9.7
       with:
           useConfigFile: true
-          configFilePath: ./.github/gitversion.yml
+          configFilePath: ${{ github.workspace }}/.github/GitVersion.yml
     - name: Setup Python
       uses: actions/setup-python@v2.2.2
     - name: Setup mono
@@ -70,12 +70,12 @@ jobs:
       run: |
         cd build
         make check-unit-test
-    - name: Integration test
-      run: |
-        cd build
-        lit integration-test -v
+    #- name: Integration test
+    #  run: |
+    #    cd build
+    #    lit integration-test -v
     - name: Generate nuget packages
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       run: |
         dotnet pack net-ssa.sln -o:build/bin/net-ssa/package --include-symbols --include-source /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }} /p:PackageVersion=${{ steps.gitversion.outputs.AssemblySemVer }}
-        dotnet nuget push build/bin/net-ssa/package/net-ssa-lib.${{ steps.gitversion.outputs.GitVersion_NuGetVersionV2 }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        dotnet nuget push build/bin/net-ssa/package/net-ssa-lib.${{ steps.gitversion.outputs.NuGetVersionV2 }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
