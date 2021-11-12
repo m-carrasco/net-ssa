@@ -10,7 +10,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\build\bin\souffle\ssa-query" CopyToOutputDirectory="Always" />
+    <None Include="..\build\bin\souffle\ssa-query">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <Pack>true</Pack>
+        <PackagePath>lib/$(TargetFramework)</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
