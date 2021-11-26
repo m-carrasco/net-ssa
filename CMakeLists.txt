@@ -17,6 +17,11 @@ find_program(LLVM_CONFIG NAMES llvm-config REQUIRED HINTS /usr/bin/llvm-config)
 message(STATUS "Using llvm-config: ${LLVM_CONFIG}")
 exec_program("${LLVM_CONFIG} --bindir" OUTPUT_VARIABLE LLVM_BINDIR)
 
+find_program(CLANGXX NAMES clang++ HINTS ${LLVM_BINDIR})
+if(NOT CLANGXX)
+    message(FATAL_ERROR "clang++ not found in ${LLVM_BINDIR}.")
+endif()
+
 add_subdirectory(souffle)
 
 set(NET_SSA_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin/net-ssa)
