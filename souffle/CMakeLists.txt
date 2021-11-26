@@ -7,6 +7,7 @@ set(QUERY_OUTPUT_EXECUTABLE ${SOUFFLE_BIN_DIR}/ssa-query CACHE INTERNAL "")
 file(MAKE_DIRECTORY ${SOUFFLE_BIN_DIR})
 
 add_custom_target(build-souffle
-    COMMAND ${SOUFFLE_COMMAND} --dl-program=${QUERY_OUTPUT_EXECUTABLE} --include-dir=${QUERY_SRC_DIRECTORY} ${QUERY_INPUT_FILE}
+    COMMAND ${SOUFFLE_COMMAND} --generate=${SOUFFLE_BIN_DIR}/ssa-query.cpp --include-dir=${QUERY_SRC_DIRECTORY} ${QUERY_INPUT_FILE}
+    COMMAND ${CLANGXX} -O3 -target x86_64-unknown-linux-gnu --std=c++17 -o ${QUERY_OUTPUT_EXECUTABLE} ${SOUFFLE_BIN_DIR}/ssa-query.cpp -static
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
