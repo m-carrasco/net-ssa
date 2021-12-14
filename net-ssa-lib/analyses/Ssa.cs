@@ -25,6 +25,32 @@ namespace NetSsa.Analyses
         public Dictionary<Variable, ISet<LinkedListNode<TacInstruction>>> Users;
 
         public Dictionary<Variable, LinkedListNode<TacInstruction>> Definitions;
+
+        public IEnumerable<TacInstruction> Entries()
+        {
+            yield return Instructions.First();
+
+            var cilExceptionalEntries = new HashSet<Mono.Cecil.Cil.Instruction>();
+            foreach (var exceptionHandler in CilBody.ExceptionHandlers)
+            {
+                var filterStart = exceptionHandler.FilterStart;
+                if (filterStart != null)
+                {
+                    cilExceptionalEntries.Add(filterStart);
+                }
+
+                cilExceptionalEntries.Add(exceptionHandler.HandlerStart);
+            }
+
+            foreach (var inst in Instructions)
+            {
+                if (inst is BytecodeInstruction bytecode)
+                {
+                    if (cilExceptionalEntries.Contains(bytecode.Bytecode))
+                        yield return inst;
+                }
+            }
+        }
     }
 
     public class Ssa
@@ -63,7 +89,7 @@ namespace NetSsa.Analyses
                 RemoveUnusedPhiNodes(ssaInstructions, definitions, users, newVariables);
             } while (lastSize != ssaInstructions.Count);
 
-            return new SsaBody()
+            var ssaBody = new SsaBody()
             {
                 CilBody = method.Body,
                 Instructions = ssaInstructions,
@@ -71,6 +97,8 @@ namespace NetSsa.Analyses
                 Users = users,
                 Variables = newVariables
             };
+
+            return ssaBody;
         }
 
         private static void RemoveUnusedPhiNodes(LinkedList<TacInstruction> ssaInstructions, Dictionary<Variable, LinkedListNode<TacInstruction>> definitions, Dictionary<Variable, ISet<LinkedListNode<TacInstruction>>> users, List<Variable> newVariables)
@@ -92,7 +120,7 @@ namespace NetSsa.Analyses
                         {
                             users[operand].Remove(instructionNode);
                         }
-                        ssaInstructions.Remove(phiInstruction);
+                        ssaInstructions.Remove(instructionNode);
                         newVariables.Remove(phiResult);
                     }
                 }
@@ -103,7 +131,7 @@ namespace NetSsa.Analyses
 
         private static bool UnfeasiblePhiNode(PhiInstruction phi, Dictionary<Variable, LinkedListNode<TacInstruction>> definitions)
         {
-            // This is generally the case for phi nodes just consuming each other. 
+            // This is generally the case for phi nodes just consuming each other.
             return phi.Operands.Any(operand => Variable.UndefinedVariable.Equals(operand) || !definitions.ContainsKey(operand) || definitions[operand].Value is PhiInstruction);
         }
 
@@ -156,12 +184,12 @@ namespace NetSsa.Analyses
                                     IEnumerable<(String, String)> successor,
                                     out Dictionary<String, LinkedListNode<TacInstruction>> labelToInstruction)
         {
-            LinkedList<BytecodeInstruction> instructions = bytecodeBody.Instructions;
+            LinkedList<TacInstruction> instructions = bytecodeBody.Instructions;
 
             LinkedList<TacInstruction> result = new LinkedList<TacInstruction>();
             foreach (var i in instructions)
             {
-                result.AddLast(i);
+                i.Node = result.AddLast(i);
             }
 
             Dictionary<String, ISet<String>> predecessors = Predecessors(successor);
@@ -183,7 +211,9 @@ namespace NetSsa.Analyses
                 phi.Result = variable;
                 phi.Incoming = predecessorLabels.Select(t => labelToBytecode[t].Value).ToList();
                 phi.Id = id++;
-                result.AddBefore(locationNode, new LinkedListNode<TacInstruction>(phi));
+                var phiNode = new LinkedListNode<TacInstruction>(phi);
+                phi.Node = phiNode;
+                result.AddBefore(locationNode, phiNode);
             }
 
             labelToInstruction = labelToBytecode;
