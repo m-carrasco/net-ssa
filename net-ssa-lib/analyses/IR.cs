@@ -19,7 +19,7 @@ namespace NetSsa.Analyses
             VariableDefinitionsToUses(bytecodeBody.Instructions);
         }
 
-        public static void VariableDefinitionsToUses(LinkedList<BytecodeInstruction> bytecodeInstructions)
+        public static void VariableDefinitionsToUses(LinkedList<TacInstruction> bytecodeInstructions)
         {
             foreach (BytecodeInstruction bytecode in bytecodeInstructions)
             {

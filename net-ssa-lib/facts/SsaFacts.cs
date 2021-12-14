@@ -75,7 +75,7 @@ namespace NetSsa.Facts
         }
 
 
-        public static IEnumerable<(String, String)> VarDef(LinkedList<BytecodeInstruction> instructions)
+        public static IEnumerable<(String, String)> VarDef(LinkedList<TacInstruction> instructions)
         {
             foreach (BytecodeInstruction instruction in instructions)
             {
