@@ -23,6 +23,7 @@ namespace NetSsaCli
             List.AddListSubCommand(rootCommand);
             Disassemble.AddDisassasembleSubCommand(rootCommand);
             Datalog.AddDatalogSubCommand(rootCommand);
+            Statistics.AddStatisticsSubCommand(rootCommand);
 
             rootCommand.InvokeAsync(args);
         }
