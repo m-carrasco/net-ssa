@@ -25,8 +25,8 @@ endif()
 add_subdirectory(souffle)
 
 set(NET_SSA_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin/net-ssa)
-add_custom_target(build-dotnet 
-    COMMAND ${DOTNET_COMMAND} build -o ${NET_SSA_BIN_DIR}
+add_custom_target(build-dotnet
+    COMMAND ${DOTNET_COMMAND} build -c Release -o ${NET_SSA_BIN_DIR}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
