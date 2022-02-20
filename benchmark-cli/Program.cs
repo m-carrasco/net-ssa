@@ -15,6 +15,7 @@ namespace MyBenchmarks
         {
             var summary = BenchmarkRunner.Run<SsaByInstructionSizeBenchmark>();
             summary = BenchmarkRunner.Run<SsaByEdgeBenchmark>();
+            summary = BenchmarkRunner.Run<SsaEntireAssembly>();
         }
     }
 }

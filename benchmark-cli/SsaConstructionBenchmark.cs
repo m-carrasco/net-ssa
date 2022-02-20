@@ -16,41 +16,14 @@ namespace MyBenchmarks
 
         public SsaConstructionBenchmark() { }
 
-        [GlobalCleanup]
-        public void GlobalCleanup()
-        {
-            Assembly.Dispose();
-            Assembly = null;
-        }
-
         public SsaBody Dissassemble(MethodBody body)
         {
             BytecodeBody bytecodeBody = Bytecode.Compute(body);
             IR.VariableDefinitionsToUses(bytecodeBody);
             return Ssa.Compute(body.Method, bytecodeBody);
         }
-
-        /*public List<SsaBody> DisassembleAll()
-        {
-            var res = new List<SsaBody>();
-
-            foreach (var type in assembly.MainModule.GetTypes())
-            {
-                foreach (var method in type.Methods)
-                {
-                    if (method.HasBody)
-                    {
-                        BytecodeBody bytecodeBody = Bytecode.Compute(method.Body);
-                        IR.VariableDefinitionsToUses(bytecodeBody);
-                        SsaBody ssaBody = Ssa.Compute(method, bytecodeBody);
-                        res.Add(ssaBody);
-                    }
-                }
-            }
-
-            return res;
-        }*/
     }
+
     public class SsaByInstructionSizeBenchmark : SsaConstructionBenchmark
     {
 
@@ -59,11 +32,6 @@ namespace MyBenchmarks
 
         public static IEnumerable<BodyWrapper> SizeBodies()
         {
-            if (Assembly == null)
-            {
-                Assembly = AssemblyDefinition.ReadAssembly(MscorlibPath);
-            }
-
             var it = new Iterator(Assembly);
             return it.FilterBodies(body => body.Instructions.Count);
         }
@@ -82,11 +50,6 @@ namespace MyBenchmarks
 
         public static IEnumerable<BodyWrapper> EdgeBodies()
         {
-            if (Assembly == null)
-            {
-                Assembly = AssemblyDefinition.ReadAssembly(MscorlibPath);
-            }
-
             var it = new Iterator(Assembly);
             var CountEdges = (MethodBody body) =>
             {
@@ -101,6 +64,29 @@ namespace MyBenchmarks
         public SsaBody DisassembleByEdges()
         {
             return Dissassemble(EdgeBody.Body);
+        }
+    }
+
+    public class SsaEntireAssembly : SsaConstructionBenchmark
+    {
+        public MethodBody[] InputBodies;
+        public SsaBody[] OutputBodies;
+        public SsaEntireAssembly()
+        {
+            var it = new Iterator(Assembly);
+            InputBodies = it.IterateBodies().ToArray();
+            OutputBodies = new SsaBody[InputBodies.Length];
+        }
+
+        [Benchmark]
+        public SsaBody[] DissasembleAll()
+        {
+            for (uint i = 0; i < InputBodies.Length; i++)
+            {
+                OutputBodies[i] = Dissassemble(InputBodies[i]);
+            }
+
+            return OutputBodies;
         }
     }
 }
