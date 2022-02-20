@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "unit-test", "unit-test\unit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "net-ssa-cli", "net-ssa-cli\net-ssa-cli.csproj", "{9002E027-7E38-40E8-8B6C-A5B79AF9C5FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "benchmark-cli", "benchmark-cli\benchmark-cli.csproj", "{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,5 +60,17 @@ Global
 		{9002E027-7E38-40E8-8B6C-A5B79AF9C5FD}.Release|x64.Build.0 = Release|Any CPU
 		{9002E027-7E38-40E8-8B6C-A5B79AF9C5FD}.Release|x86.ActiveCfg = Release|Any CPU
 		{9002E027-7E38-40E8-8B6C-A5B79AF9C5FD}.Release|x86.Build.0 = Release|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Debug|x64.Build.0 = Debug|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Debug|x86.Build.0 = Debug|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Release|x64.ActiveCfg = Release|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Release|x64.Build.0 = Release|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Release|x86.ActiveCfg = Release|Any CPU
+		{B4D330B8-EF0A-46F6-8F89-07F4AD86627D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
