@@ -7,7 +7,19 @@ namespace NetSsa.Instructions
 {
     public class ControlFlowInstruction : BytecodeInstruction
     {
-        public ControlFlowInstruction(Instruction bytecode) : base(bytecode) { }
+        public ControlFlowInstruction(Instruction bytecode) : base(bytecode.OpCode, null, bytecode.Offset) { }
+        public ControlFlowInstruction(OpCode opCode, int offset) : base(opCode, null, offset) { }
+        public static bool CanFallThrough(FlowControl flowControl)
+        {
+            switch (flowControl)
+            {
+                case FlowControl.Return:
+                case FlowControl.Branch:
+                case FlowControl.Throw:
+                    return false;
+            }
+            return true;
+        }
 
         public static bool IsControlFlowSequenceCode(Code code)
         {

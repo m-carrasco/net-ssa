@@ -2,36 +2,41 @@
 // RUN: %net-ssa-cli %T/Test.dll disassemble method "System.Int32 Test::Foo(System.Int32)" > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
-//CHECK: IL_0000: s0 = -1
-//CHECK: IL_0001: l0 = s0
-//CHECK: IL_0002: s0 = l0
-//CHECK: IL_0003: s1 = 1
-//CHECK: IL_0004: s0 = s0 + s1
-//CHECK: IL_0005: l0 = s0
-//CHECK: IL_0006: s0 = a0
-//CHECK: IL_0007: s1 = 5
-//CHECK: IL_0008: br IL_0013 if s0 != s1 [unsigned]
-//CHECK: IL_000d: s0 = newobj System.Void System.Exception::.ctor()
-//CHECK: IL_0012: throw s0
-//CHECK: IL_0013: leave IL_0038
-//CHECK: IL_0018: l1 = e0
-//CHECK: IL_0019: s0 = l0
-//CHECK: IL_001a: s1 = 1
-//CHECK: IL_001b: s0 = s0 + s1
-//CHECK: IL_001c: l0 = s0
-//CHECK: IL_001d: s0 = l1
-//CHECK: IL_001e: call System.Void Test::Bar(System.Exception) [s0]
-//CHECK: IL_0023: leave IL_0038
-//CHECK: IL_0028: l2 = e1
-//CHECK: IL_0029: s0 = l0
-//CHECK: IL_002a: s1 = 1
-//CHECK: IL_002b: s0 = s0 + s1
-//CHECK: IL_002c: l0 = s0
-//CHECK: IL_002d: s0 = l2
-//CHECK: IL_002e: call System.Void Test::Bar(System.Exception) [s0]
-//CHECK: IL_0033: leave IL_0038
-//CHECK: IL_0038: s0 = l0
-//CHECK: IL_0039: ret s0
+/*
+// CHECK: {{.*}}: nop
+// CHECK: {{.*}}: s0 = ldc.i4.m1
+// CHECK: {{.*}}: l0 = stloc.0 [s0]
+// CHECK: {{.*}}: s0 = ldloc.0 [l0]
+// CHECK: {{.*}}: s1 = ldc.i4.1
+// CHECK: {{.*}}: s0 = add [s0, s1]
+// CHECK: {{.*}}: l0 = stloc.0 [s0]
+// CHECK: {{.*}}: s0 = ldarg.0 [a0]
+// CHECK: {{.*}}: s1 = ldc.i4.5
+// CHECK: {{.*}}: bne.un [[IL_0014:.*]] [s0, s1]
+// CHECK: {{.*}}: s0 = newobj System.Void System.Exception::.ctor()
+// CHECK: {{.*}}: throw [s0]
+// CHECK: [[IL_0014]]: leave [[IL_003b:.*]]
+// CHECK: {{.*}}: nop
+// CHECK: {{.*}}: l1 = stloc.1 [e0]
+// CHECK: {{.*}}: s0 = ldloc.0 [l0]
+// CHECK: {{.*}}: s1 = ldc.i4.1
+// CHECK: {{.*}}: s0 = add [s0, s1]
+// CHECK: {{.*}}: l0 = stloc.0 [s0]
+// CHECK: {{.*}}: s0 = ldloc.1 [l1]
+// CHECK: {{.*}}: call System.Void Test::Bar(System.Exception) [s0]
+// CHECK: {{.*}}: leave [[IL_003b]]
+// CHECK: {{.*}}: nop
+// CHECK: {{.*}}: l2 = stloc.2 [e1]
+// CHECK: {{.*}}: s0 = ldloc.0 [l0]
+// CHECK: {{.*}}: s1 = ldc.i4.1
+// CHECK: {{.*}}: s0 = add [s0, s1]
+// CHECK: {{.*}}: l0 = stloc.0 [s0]
+// CHECK: {{.*}}: s0 = ldloc.2 [l2]
+// CHECK: {{.*}}: call System.Void Test::Bar(System.Exception) [s0]
+// CHECK: {{.*}}: leave [[IL_003b]]
+// CHECK: [[IL_003b]]: s0 = ldloc.0 [l0]
+// CHECK: {{.*}}: ret [s0]
+*/
 
 using System;
 

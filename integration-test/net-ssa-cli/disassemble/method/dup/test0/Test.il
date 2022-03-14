@@ -1,11 +1,11 @@
-// RUN: %ilasm /nologo /dll /out:"%T/Test.dll" "%s" 
+// RUN: %ilasm /nologo /dll /out:"%T/Test.dll" "%s"
 // RUN: %net-ssa-cli %T/Test.dll disassemble method "System.Int32 Test::Bar(System.Int32)" > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
-// CHECK: IL_0000: s0 = a0
-// CHECK: IL_0001: s1 = dup [s0]
-// CHECK: IL_0002: s0 = s0 + s1
-// CHECK: IL_0003: ret s0
+// CHECK: {{.*}}: s0 = ldarg.0 [a0]
+// CHECK: {{.*}}: s1 = dup [s0]
+// CHECK: {{.*}}: s0 = add [s0, s1]
+// CHECK: {{.*}}: ret [s0]
 
 .assembly extern mscorlib
 {

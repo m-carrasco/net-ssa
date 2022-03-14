@@ -94,36 +94,166 @@ namespace UnitTest
         }
 
         [Test]
-        public void TestVarDef()
-        {
-            var methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
-            var computedVarDef = SsaFacts.VarDef(methodDefinition.Body);
-            var expected = new List<(String, String)>() {
-                ("s0","IL_0001"),
-                ("s0","IL_000d"),
-                ("s0","IL_0013"),
-                ("s0","IL_000f"),
-                ("s0","IL_0003"),
-                ("s0","IL_0006"),
-                ("s0","IL_0009"),
-                ("s1","IL_0002"),
-            };
-
-            Assert.That(computedVarDef, Is.EquivalentTo(expected));
-        }
-
-        [Test]
         public void TestSsaQuery()
         {
             var methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
             var body = methodDefinition.Body;
 
-            var varDef = SsaFacts.VarDef(body);
+            IRBody irBody = Unstacker.Compute(methodDefinition.Body);
+            var varDef = SsaFacts.VarDefRegisters(irBody);
             var successor = SsaFacts.Successor(body);
 
             var result = SsaQuery.Query(SsaFacts.EntryInstruction(body), successor, varDef);
 
             Assert.AreEqual(result.PhiLocation.Count(), 1);
+        }
+
+        [Test]
+        public void TestSsaVerifierSelfReferential()
+        {
+            // Only a phi node can be self referential
+            IRBody irBody = new IRBody();
+            irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
+            irBody.Instructions = new LinkedList<TacInstruction>();
+
+            BytecodeInstruction inst = new BytecodeInstruction(OpCodes.Nop, null, 0);
+            Register result = new Register("dummy");
+            inst.Result = result;
+            result.AddDefinition(inst);
+            result.AddUse(inst);
+            inst.Node = irBody.Instructions.AddFirst(inst);
+
+            SsaVerifier ssaVerifier = new SsaVerifier(irBody);
+            VerifierException exception = Assert.Throws<VerifierException>(() => ssaVerifier.Verify());
+            Assert.IsTrue(exception.ToString().Contains("self referential"));
+        }
+
+        [Test]
+        public void TestSsaVerifierOnlyOneDef()
+        {
+            IRBody irBody = new IRBody();
+            irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
+            irBody.Instructions = new LinkedList<TacInstruction>();
+
+            BytecodeInstruction inst = new BytecodeInstruction(OpCodes.Nop, null, 0);
+            Register result = new Register("dummy0");
+            result.AddDefinition(inst);
+            inst.Node = irBody.Instructions.AddLast(inst);
+
+            inst = new BytecodeInstruction(OpCodes.Nop, null, 1);
+            result.AddDefinition(inst);
+            inst.Node = irBody.Instructions.AddLast(inst);
+
+            SsaVerifier ssaVerifier = new SsaVerifier(irBody);
+            VerifierException exception = Assert.Throws<VerifierException>(() => ssaVerifier.Verify());
+            Assert.IsTrue(exception.ToString().Contains("is defined twice"));
+        }
+
+        [Test]
+        public void TestSsaVerifierUseDomByDef()
+        {
+            IRBody irBody = new IRBody();
+            irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
+            irBody.Instructions = new LinkedList<TacInstruction>();
+
+            BytecodeInstruction nop = new BytecodeInstruction(OpCodes.Nop, null, 0);
+            ControlFlowInstruction br = new ControlFlowInstruction(OpCodes.Br, 1);
+            BytecodeInstruction def = new BytecodeInstruction(OpCodes.Nop, null, 2);
+            BytecodeInstruction use = new BytecodeInstruction(OpCodes.Nop, null, 3);
+
+            nop.Node = irBody.Instructions.AddLast(nop);
+            br.Node = irBody.Instructions.AddLast(br);
+            def.Node = irBody.Instructions.AddLast(def);
+            use.Node = irBody.Instructions.AddLast(use);
+
+            Register result = new Register("dummy0");
+            result.AddDefinition(def);
+            br.Targets.Add(use);
+            result.AddUse(use);
+
+            SsaVerifier ssaVerifier = new SsaVerifier(irBody);
+            VerifierException exception = Assert.Throws<VerifierException>(() => ssaVerifier.Verify());
+            Assert.IsTrue(exception.ToString().Contains("is not dominated"));
+        }
+
+
+        [Test]
+        public void TestSsaVerifierPhiOperandsEqualsPredecessors()
+        {
+            IRBody irBody = new IRBody();
+            irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
+            irBody.Instructions = new LinkedList<TacInstruction>();
+
+            BytecodeInstruction nop0 = new BytecodeInstruction(OpCodes.Nop, null, 0);
+            ControlFlowInstruction br = new ControlFlowInstruction(OpCodes.Brfalse_S, 1);
+            BytecodeInstruction nop1 = new BytecodeInstruction(OpCodes.Nop, null, 2);
+            PhiInstruction phi = new PhiInstruction();
+            BytecodeInstruction nop2 = new BytecodeInstruction(OpCodes.Nop, null, 3);
+
+            nop0.Node = irBody.Instructions.AddLast(nop0);
+            br.Node = irBody.Instructions.AddLast(br);
+            nop1.Node = irBody.Instructions.AddLast(nop1);
+            phi.Node = irBody.Instructions.AddLast(phi);
+            nop2.Node = irBody.Instructions.AddLast(nop2);
+
+            Register res0 = new Register("dummy0");
+            res0.AddDefinition(nop0);
+
+            br.Targets.Add(phi);
+
+            Register res1 = new Register("dummy1");
+            res1.AddDefinition(nop1);
+
+            Register res2 = new Register("dummy2");
+            res2.AddDefinition(phi);
+            res0.AddUse(phi);
+            phi.Incoming.Add(br);
+
+            SsaVerifier ssaVerifier = new SsaVerifier(irBody);
+            VerifierException exception = Assert.Throws<VerifierException>(() => ssaVerifier.Verify());
+            Assert.IsTrue(exception.ToString().Contains("Phi instruction with a different amount of operands"));
+        }
+
+
+        [Test]
+        public void TestSsaVerifierPhiFirstInBasicBlock()
+        {
+            IRBody irBody = new IRBody();
+            irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
+            irBody.Instructions = new LinkedList<TacInstruction>();
+
+            BytecodeInstruction nop0 = new BytecodeInstruction(OpCodes.Nop, null, 0);
+            ControlFlowInstruction br = new ControlFlowInstruction(OpCodes.Brfalse_S, 1);
+            BytecodeInstruction nop1 = new BytecodeInstruction(OpCodes.Nop, null, 2);
+            BytecodeInstruction nop2 = new BytecodeInstruction(OpCodes.Nop, null, 3);
+            PhiInstruction phi = new PhiInstruction();
+            BytecodeInstruction nop3 = new BytecodeInstruction(OpCodes.Nop, null, 4);
+
+            nop0.Node = irBody.Instructions.AddLast(nop0);
+            br.Node = irBody.Instructions.AddLast(br);
+            nop1.Node = irBody.Instructions.AddLast(nop1);
+            nop2.Node = irBody.Instructions.AddLast(nop2);
+            phi.Node = irBody.Instructions.AddLast(phi);
+            nop3.Node = irBody.Instructions.AddLast(nop3);
+
+            Register res0 = new Register("dummy0");
+            res0.AddDefinition(nop0);
+
+            br.Targets.Add(nop2);
+
+            Register res1 = new Register("dummy1");
+            res1.AddDefinition(nop1);
+
+            Register res2 = new Register("dummy2");
+            res2.AddDefinition(phi);
+            res0.AddUse(phi);
+            res1.AddUse(phi);
+            phi.Incoming.Add(br);
+            phi.Incoming.Add(nop1);
+
+            SsaVerifier ssaVerifier = new SsaVerifier(irBody);
+            VerifierException exception = Assert.Throws<VerifierException>(() => ssaVerifier.Verify());
+            Assert.IsTrue(exception.ToString().Contains("PHIs must be the first thing in a basic block"));
         }
 
         [Test]
@@ -134,14 +264,12 @@ namespace UnitTest
             Mono.Cecil.MethodDefinition methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
             Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
 
-            NetSsa.Analyses.BytecodeBody bytecodeBody = Bytecode.Compute(body);
-
-            foreach (NetSsa.Instructions.BytecodeInstruction ins in bytecodeBody.Instructions)
+            IRBody irBody = Unstacker.Compute(body);
+            foreach (NetSsa.Instructions.BytecodeInstruction ins in irBody.Instructions.Cast<BytecodeInstruction>())
             {
-                Mono.Cecil.Cil.Instruction cil = ins.Bytecode;
-                Console.WriteLine("Opcode: " + cil.OpCode.Code);
+                Console.WriteLine("Opcode: " + ins.OpCode.Code);
 
-                foreach (NetSsa.Analyses.Variable op in ins.Operands)
+                foreach (NetSsa.Analyses.ValueContainer op in ins.Operands)
                 {
                     Console.WriteLine("Operand: " + op.Name);
                 }

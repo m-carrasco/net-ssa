@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Mono.Cecil.Cil;
+using System.Text;
 
 namespace NetSsa.Instructions
 {
@@ -8,159 +9,83 @@ namespace NetSsa.Instructions
     {
         public BytecodeInstruction(Instruction bytecode)
         {
-            Bytecode = bytecode;
+            this.OpCode = bytecode.OpCode;
+            this.EncodedOperand = bytecode.Operand;
+            this.Offset = bytecode.Offset;
         }
+
+        public BytecodeInstruction(OpCode opCode, Object operand, int offset)
+        {
+            this.OpCode = opCode;
+            this.EncodedOperand = operand;
+            this.Offset = offset;
+        }
+
+        public int Offset;
 
         public Instruction Bytecode;
 
+        public OpCode OpCode;
+
+        // This is the same value that Mono.Cecil.Instruction has in its 'operand' field.
+        // EncodedOperand is the value encoded in the instruction not a value consumed from the stack.
+        public Object EncodedOperand;
+
         public override string Label()
         {
-            return Label(this.Bytecode);
+            return "IL_" + Offset.ToString("x4");
         }
 
         public override string ToString()
         {
-            String label = Label();
-            String instruction = String.Empty;
-            switch (Bytecode.OpCode.Code)
-            {
-                case Code.Ldarga:
-                case Code.Ldarga_S:
-                case Code.Ldloca:
-                case Code.Ldloca_S:
-                    return TakeVariableAddress(label);
-                case Code.Ldarg:
-                case Code.Ldarg_0:
-                case Code.Ldarg_1:
-                case Code.Ldarg_2:
-                case Code.Ldarg_3:
-                case Code.Ldarg_S:
-                case Code.Ldloc_0:
-                case Code.Ldloc_1:
-                case Code.Ldloc_2:
-                case Code.Ldloc_3:
-                case Code.Ldloc_S:
-                    return LoadVariable(label);
-                case Code.Stloc:
-                case Code.Stloc_0:
-                case Code.Stloc_1:
-                case Code.Stloc_2:
-                case Code.Stloc_3:
-                case Code.Stloc_S:
-                case Code.Starg:
-                case Code.Starg_S:
-                    return StoreVariable(label);
-                case Code.Add:
-                    return BinaryOperation(label, "+");
-                case Code.Mul:
-                    return BinaryOperation(label, "*");
-                case Code.Clt:
-                    return BinaryOperation(label, "<");
-                case Code.Ceq:
-                    return BinaryOperation(label, "==");
-                case Code.Bge:
-                    return BinaryConditionalBranch(label, ">=");
-                case Code.Ble:
-                    return BinaryConditionalBranch(label, "<=");
-                case Code.Bne_Un:
-                    return BinaryConditionalBranch(label, "!=", "[unsigned]");
-                case Code.Ble_Un:
-                    return BinaryConditionalBranch(label, "<=", "[unsigned]");
-                case Code.Bge_Un:
-                    return BinaryConditionalBranch(label, ">=", "[unsigned]");
-                case Code.Brtrue_S:
-                    return BinaryConditionalBranch(label, "==", Operands[0].Name, "true");
-                case Code.Ldc_I4_0:
-                    instruction = "0";
-                    break;
-                case Code.Ldc_I4_1:
-                    instruction = "1";
-                    break;
-                case Code.Ldc_I4_2:
-                    instruction = "2";
-                    break;
-                case Code.Ldc_I4_5:
-                    instruction = "5";
-                    break;
-                case Code.Ldc_I4_M1:
-                    instruction = "-1";
-                    break;
-                case Code.Ldstr:
-                    instruction = "\"" + this.Bytecode.Operand + "\"";
-                    break;
-                case Code.Ret:
-                    return Ret(label);
-                case Code.Throw:
-                    return Throw(label);
-                default:
-                    instruction = CecilToStringNoLabel();
-                    break;
-            }
-            var result = Result != null ? (" " + Result.Name + " =") : String.Empty;
-            var operands = this.Operands.Count() > 0 ? " " + String.Format("[{0}]", String.Join(", ", this.Operands.Select(operand => operand.Name))) : String.Empty;
+            string label = Label();
+            string instruction = CecilToString();
+
+            string result = Result != null ? (" " + Result.Name + " =") : String.Empty;
+            string operands = this.Operands.Count() > 0 ? " " + String.Format("[{0}]", String.Join(", ", this.Operands.Select(operand => operand.Name))) : String.Empty;
 
             return String.Format("{0}:{1} {2}{3}", label, result, instruction, operands).Trim();
         }
 
-        private string StoreVariable(String label)
+        private string CecilToString()
         {
-            if (Operands.Count == 2)
+            var instruction = new StringBuilder();
+
+            instruction.Append(OpCode.Name);
+
+            bool isControlFlow = this is ControlFlowInstruction;
+
+            if (EncodedOperand == null && !isControlFlow)
+                return instruction.ToString();
+
+            instruction.Append(' ');
+
+            if (isControlFlow)
             {
-                return String.Format("{0}: store {1}, {2}", label, Operands[0].Name, Operands[1].Name);
+                ControlFlowInstruction cfi = (ControlFlowInstruction)this;
+                for (int i = 0; i < cfi.Targets.Count; i++)
+                {
+                    if (i > 0)
+                        instruction.Append(',');
+                    instruction.Append(cfi.Targets[i].Label());
+                }
+
+                return instruction.ToString();
             }
 
-            return String.Format("{0}: {1} = {2} [store]", label, Result.Name, Operands[0].Name);
-        }
+            switch (OpCode.OperandType)
+            {
+                case OperandType.InlineString:
+                    instruction.Append('\"');
+                    instruction.Append(EncodedOperand);
+                    instruction.Append('\"');
+                    break;
+                default:
+                    instruction.Append(EncodedOperand);
+                    break;
+            }
 
-        private string LoadVariable(String label)
-        {
-            return String.Format("{0}: {1} = {2} [load]", label, Result.Name, Operands[0].Name);
-        }
-        private string TakeVariableAddress(String label)
-        {
-            return String.Format("{0}: {1} = &{2}", label, Result.Name, Operands[0].Name);
-        }
-
-        private string BinaryOperation(String label, String symbol)
-        {
-            return String.Format("{0}: {1} = {2} {3} {4}", label, Result.Name, Operands[0].Name, symbol, Operands[1].Name);
-        }
-
-        private string BinaryConditionalBranch(String label, String symbol, String message)
-        {
-            return BinaryConditionalBranch(label, symbol) + " " + message;
-        }
-
-        private string BinaryConditionalBranch(String label, String symbol)
-        {
-            return BinaryConditionalBranch(label, symbol, Operands[0].Name, Operands[1].Name);
-        }
-
-        private string BinaryConditionalBranch(String label, String symbol, String operand0, String operand1)
-        {
-            return String.Format("{0}: br {1} if {2} {3} {4}", label, Label(((Instruction)this.Bytecode.Operand)), operand0, symbol, operand1);
-        }
-
-
-        private string Ret(String label)
-        {
-            return String.Format("{0}: ret {1}", label, Operands.Count() == 0 ? String.Empty : Operands[0].Name);
-        }
-
-        private string Throw(String label)
-        {
-            return String.Format("{0}: throw {1}", label, Operands[0].Name);
-        }
-
-        private string CecilToStringNoLabel()
-        {
-            var label = Label();
-            return Bytecode.ToString().Substring(label.Count() + 2).Trim();
-        }
-
-        private string Label(Instruction instruction)
-        {
-            return "IL_" + instruction.Offset.ToString("x4");
+            return instruction.ToString();
         }
     }
 }

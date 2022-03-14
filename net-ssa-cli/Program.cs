@@ -13,7 +13,7 @@ namespace NetSsaCli
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
             var rootCommand = new RootCommand
             {
@@ -23,8 +23,9 @@ namespace NetSsaCli
             List.AddListSubCommand(rootCommand);
             Disassemble.AddDisassasembleSubCommand(rootCommand);
             Datalog.AddDatalogSubCommand(rootCommand);
+            PrintCfg.AddControlFlowGraphSubCommand(rootCommand);
 
-            rootCommand.InvokeAsync(args);
+            return rootCommand.Invoke(args);
         }
 
     }

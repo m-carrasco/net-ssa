@@ -2,23 +2,23 @@
 // RUN: %net-ssa-cli %T/Test.dll disassemble method "System.Void Test::Foo(System.Int32,System.Int32,System.Int32,System.Int32)" > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
-// CHECK: IL_0000: s0 = 0
-// CHECK: IL_0001: s1 = 0
-// CHECK: IL_0002: s0 = call System.Int32 System.DateTime::DaysInMonth(System.Int32,System.Int32) [s0, s1]
-// CHECK: IL_0007: a0 = s0
-// CHECK: IL_0009: s0 = 0
-// CHECK: IL_000a: s1 = 0
-// CHECK: IL_000b: s0 = call System.Int32 System.DateTime::DaysInMonth(System.Int32,System.Int32) [s0, s1]
-// CHECK: IL_0010: a1 = s0
-// CHECK: IL_0012: s0 = 0
-// CHECK: IL_0013: s1 = 0
-// CHECK: IL_0014: s0 = call System.Int32 System.DateTime::DaysInMonth(System.Int32,System.Int32) [s0, s1]
-// CHECK: IL_0019: a2 = s0
-// CHECK: IL_001b: s0 = 0
-// CHECK: IL_001c: s1 = 0
-// CHECK: IL_001d: s0 = call System.Int32 System.DateTime::DaysInMonth(System.Int32,System.Int32) [s0, s1]
-// CHECK: IL_0022: a3 = s0
-// CHECK: IL_0024: ret 
+// CHECK: {{.*}}: s0 = ldc.i4.0
+// CHECK: {{.*}}: s1 = ldc.i4.0
+// CHECK: {{.*}}: s0 = call System.Int32 System.DateTime::DaysInMonth(System.Int32,System.Int32) [s0, s1]
+// CHECK: {{.*}}: a0 = starg.s a [s0]
+// CHECK: {{.*}}: s0 = ldc.i4.0
+// CHECK: {{.*}}: s1 = ldc.i4.0
+// CHECK: {{.*}}: s0 = call System.Int32 System.DateTime::DaysInMonth(System.Int32,System.Int32) [s0, s1]
+// CHECK: {{.*}}: a1 = starg.s b [s0]
+// CHECK: {{.*}}: s0 = ldc.i4.0
+// CHECK: {{.*}}: s1 = ldc.i4.0
+// CHECK: {{.*}}: s0 = call System.Int32 System.DateTime::DaysInMonth(System.Int32,System.Int32) [s0, s1]
+// CHECK: {{.*}}: a2 = starg.s c [s0]
+// CHECK: {{.*}}: s0 = ldc.i4.0
+// CHECK: {{.*}}: s1 = ldc.i4.0
+// CHECK: {{.*}}: s0 = call System.Int32 System.DateTime::DaysInMonth(System.Int32,System.Int32) [s0, s1]
+// CHECK: {{.*}}: a3 = starg.s d [s0]
+// CHECK: {{.*}}: ret
 
 using System;
 

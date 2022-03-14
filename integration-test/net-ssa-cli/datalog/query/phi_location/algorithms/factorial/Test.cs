@@ -2,9 +2,10 @@
 // RUN: %net-ssa-cli %T/Test.dll datalog phi_location method "System.Int32 Test::Factorial(System.Int32)" > %t.phi_location
 // RUN: %FileCheck %s < %t.phi_location
 
-// CHECK: phi_location: 
-// CHECK: 	s0 IL_001a
-// CHECK: 	s1 IL_001a
+// CHECK: phi_location:
+// CHECK: 	s0 IL_001b
+// CHECK: 	s1 IL_001b
+
 public class Test
 {
     public static int Factorial(int a)

@@ -11,7 +11,7 @@ using NetSsa.Instructions;
 
 namespace NetSsaCli
 {
-    class Disassemble
+    class PrintCfg
     {
         enum DisassemblyType
         {
@@ -19,35 +19,25 @@ namespace NetSsaCli
             Ssa
         }
 
-        public static void AddDisassasembleSubCommand(RootCommand rootCommand)
+        public static void AddControlFlowGraphSubCommand(RootCommand rootCommand)
         {
-            var disassemble = new Command("disassemble");
+            var cfg = new Command("cfg");
 
             var type = new Option<DisassemblyType>(
                 "--type",
                 getDefaultValue: () => DisassemblyType.IR,
                 description: "Type of the dissasmbled code.");
-            disassemble.AddOption(type);
-
-            var verifySsa = new Option<bool>(
-                "--verify-ssa",
-                getDefaultValue: () => false,
-                description: "Perform SSA correctness checks (one assignment, etc.).");
-            disassemble.AddOption(verifySsa);
+            cfg.AddOption(type);
 
             var method = new Command("method");
-            method.AddArgument(new Argument<String>("method", "Method to disassemble."));
-            method.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool, String>(PrintDisassemble);
-            disassemble.AddCommand(method);
+            method.AddArgument(new Argument<String>("method", "Method to print CFG."));
+            method.Handler = CommandHandler.Create<FileInfo, DisassemblyType, String>(Print);
+            cfg.AddCommand(method);
 
-            var all = new Command("all", "All methods in the assembly are disassembled.");
-            all.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool>(PrintDisassemble);
-            disassemble.AddCommand(all);
-
-            rootCommand.Add(disassemble);
+            rootCommand.Add(cfg);
         }
 
-        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa, String method)
+        static void Print(FileInfo input, DisassemblyType type, String method)
         {
             using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(input.FullName))
             {
@@ -65,22 +55,13 @@ namespace NetSsaCli
 
                             IRBody irBody = Unstacker.Compute(m.Body);
 
-                            bool isSsa = DisassemblyType.Ssa.Equals(type);
-                            if (isSsa)
+                            if (DisassemblyType.Ssa.Equals(type))
                             {
                                 Ssa.Compute(m, irBody);
-
                             }
+                            ControlFlowGraph cfg = new ControlFlowGraph(irBody);
 
-                            Console.WriteLine(m.FullName);
-                            Console.WriteLine(String.Join(System.Environment.NewLine, irBody.Instructions.Select(t => t.ToString())));
-
-                            if (isSsa && verifySsa)
-                            {
-                                SsaVerifier ssaVerifier = new SsaVerifier(irBody);
-                                ssaVerifier.Verify();
-                            }
-
+                            Console.WriteLine(cfg.SerializeDotFile());
                             return;
                         }
                     }
@@ -90,7 +71,7 @@ namespace NetSsaCli
             }
         }
 
-        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa)
+        static void PrintDisassemble(FileInfo input, DisassemblyType type)
         {
             using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(input.FullName))
             {
@@ -116,7 +97,7 @@ namespace NetSsaCli
 
                         Console.WriteLine(String.Join(System.Environment.NewLine, irBody.Instructions.Select(t => t.ToString())));
 
-                        if (isSsa && verifySsa)
+                        if (isSsa)
                         {
                             SsaVerifier ssaVerifier = new SsaVerifier(irBody);
                             ssaVerifier.Verify();
