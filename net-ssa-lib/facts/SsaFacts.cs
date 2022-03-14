@@ -54,41 +54,15 @@ namespace NetSsa.Facts
             yield break;
         }
 
-        public static IEnumerable<(String, String)> VarDef(MethodBody methodBody)
+        public static IEnumerable<(String, String)> VarDefRegisters(IRBody irBody)
         {
-            VariableDefUse.Compute(methodBody, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> definitions);
-            IR.VariableDefinitionsToUses(uses, definitions);
-            return VarDef(definitions, uses, methodBody.Instructions);
-        }
-
-        public static IEnumerable<(String, String)> VarDef(Dictionary<Instruction, List<Variable>> definitions, Dictionary<Instruction, List<Variable>> uses, ICollection<Instruction> instructions)
-        {
-            foreach (Instruction instruction in instructions)
+            foreach (var reg in irBody.Registers)
             {
-                var currentLabel = Label(instruction);
-
-                foreach (Variable variable in definitions[instruction])
-                    yield return (variable.Name, currentLabel);
+                foreach (var tac in reg.Definitions)
+                {
+                    yield return (reg.Name, tac.Label());
+                }
             }
-
-            yield break;
-        }
-
-
-        public static IEnumerable<(String, String)> VarDef(LinkedList<TacInstruction> instructions)
-        {
-            foreach (BytecodeInstruction instruction in instructions)
-            {
-                Variable result = instruction.Result;
-
-                if (result == null)
-                    continue;
-
-                var currentLabel = instruction.Label();
-                yield return (result.Name, currentLabel);
-            }
-
-            yield break;
         }
 
         public static IEnumerable<Tuple<String>> EntryInstruction(MethodBody methodBody)

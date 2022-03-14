@@ -1,15 +1,14 @@
-// RUN: %ilasm /nologo /dll /out:"%T/Test.dll" "%s" 
+// RUN: %ilasm /nologo /dll /out:"%T/Test.dll" "%s"
 // RUN: %net-ssa-cli %T/Test.dll disassemble method "System.Int32 Test::Bar()" > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
-// CHECK: IL_0000: s0 = newobj System.Void System.InvalidOperationException::.ctor()
-// CHECK: IL_0005: throw s0
+// CHECK: {{.*}}: s0 = newobj System.Void System.InvalidOperationException::.ctor()
+// CHECK: {{.*}}: throw [s0]
+// CHECK: {{.*}}: leave.s [[IL_0008:.*]] [e0]
 // COM: leave must consume everything on the stack.
-// CHECK: IL_0006: leave.s IL_0008 [e0]
-// COM: next s0 is what is under test.
 // COM: the stack size after a leave must be 0.
-// CHECK: IL_0008: s0 = ldc.i4.s 42
-// CHECK: IL_000a: ret s0
+// CHECK: [[IL_0008]]: s0 = ldc.i4.s 42
+// CHECK: {{.*}}: ret [s0]
 
 
 .assembly extern mscorlib
@@ -32,8 +31,8 @@
         ret
     }
 
-  .method public hidebysig static 
-    int32 Bar () cil managed 
+  .method public hidebysig static
+    int32 Bar () cil managed
   {
     .maxstack 1
 
@@ -49,6 +48,6 @@
 
     IL_0008: ldc.i4.s  42
     IL_000A: ret
-  } 
+  }
 
 }

@@ -2,11 +2,11 @@
 // RUN: %net-ssa-cli %T/Test.dll disassemble method "System.Void Test::Foo(System.Int32)" > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
-// CHECK: IL_0000: s0 = &a0
-// CHECK: IL_0002: l0 = s0
-// CHECK: IL_0003: s0 = l0
-// CHECK: IL_0004: call System.Void Test::Bar(System.Int32&) [s0]
-// CHECK: IL_0009: ret 
+// CHECK: {{.}}: s0 = ldarga.s a [a0]
+// CHECK: {{.}}: l0 = stloc.0 [s0]
+// CHECK: {{.}}: s0 = ldloc.0 [l0]
+// CHECK: {{.}}: call System.Void Test::Bar(System.Int32&) [s0]
+// CHECK: {{.}}: ret
 
 using System;
 

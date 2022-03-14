@@ -1,35 +1,46 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using NetSsa.Instructions;
 
 namespace NetSsa.Analyses
 {
-    public class VariableDefUse
+    public class Unstacker
     {
-        public static void Compute(MethodBody body, out List<Variable> variables, out Dictionary<Instruction, List<Variable>> uses, out Dictionary<Instruction, List<Variable>> defs)
+        public static IRBody Compute(MethodBody body)
         {
-            defs = new Dictionary<Instruction, List<Variable>>();
-            uses = new Dictionary<Instruction, List<Variable>>();
-            variables = new List<Variable>();
+            return Compute(body, out IDictionary<Mono.Cecil.Cil.Instruction, LinkedListNode<TacInstruction>> cecilToTac);
+        }
+
+        public static IRBody Compute(MethodBody body, out IDictionary<Mono.Cecil.Cil.Instruction, LinkedListNode<TacInstruction>> cecilToTac)
+        {
+            IRBody irBody = IntermediateRepresentation.Compute(body, out cecilToTac);
 
             int max_stack;
             var stack_sizes = ComputeStackSize(body, out max_stack);
 
-            var stackVariables = Enumerable.Range(0, max_stack).Select(index => new Variable(Variable.StackVariablePrefix + index)).ToList();
-            var localVariables = Enumerable.Range(0, body.Variables.Count).Select(index => new Variable(Variable.LocalVariablePrefix + index)).ToList();
-
-            int offset = body.Method.HasThis ? 1 : 0;
-            var argVariables = Enumerable.Range(0, body.Method.Parameters.Count).Select(index => new Variable(Variable.ArgumentVariablePrefix + (index + offset))).ToList();
-            if (body.Method.HasThis)
+            for (uint index = 0; index < max_stack; index++)
             {
-                argVariables.Insert(0, new Variable(Variable.ArgumentVariablePrefix + "0"));
+                irBody.Registers.Add(new Register((uint)index));
             }
 
-            variables.AddRange(stackVariables);
-            variables.AddRange(localVariables);
-            variables.AddRange(argVariables);
+            for (uint index = 0; index < body.Variables.Count; index++)
+            {
+                irBody.MemoryLocalVariables.Add(new MemoryVariable(MemoryVariable.LocalVariablePrefix + index, MemoryVariableKind.Local));
+            }
+
+            if (body.Method.HasThis)
+            {
+                irBody.MemoryArgumentVariables.Add(new MemoryVariable(MemoryVariable.ArgumentVariablePrefix + "0", MemoryVariableKind.Argument));
+            }
+
+            int offset = body.Method.HasThis ? 1 : 0;
+            for (uint index = 0; index < body.Method.Parameters.Count; index++)
+            {
+                irBody.MemoryArgumentVariables.Add(new MemoryVariable(MemoryVariable.ArgumentVariablePrefix + (index + offset), MemoryVariableKind.Argument));
+            }
 
             foreach (var kv in stack_sizes)
             {
@@ -38,89 +49,99 @@ namespace NetSsa.Analyses
 
                 // Analyze which stack slots are consumed
                 int popDelta = ComputePopDelta(instruction, IsReturnTypeVoid(body), stack_size);
-                uses[instruction] = Enumerable.Range(stack_size - popDelta, popDelta).Select(index => stackVariables[index]).ToList();
+
+                TacInstruction tacInstruction = cecilToTac[instruction].Value;
+                foreach (var index in Enumerable.Range(stack_size - popDelta, popDelta))
+                {
+                    Register usedOperand = irBody.Registers[index];
+                    usedOperand.AddUse(tacInstruction);
+                }
 
                 int pushDelta = ComputePushDelta(instruction);
-                defs[instruction] = Enumerable.Range(stack_size - popDelta, pushDelta).Select(index => stackVariables[index]).ToList();
-
-                if (instruction.OpCode.Code == OpCodes.Dup.Code)
+                // for sake of simplicity, a DUP opcode only defines
+                // one variable. semantic-wise, the consumed operand is left
+                // untouched.
+                int skip = instruction.OpCode.Code == OpCodes.Dup.Code ? 1 : 0;
+                foreach (var index in Enumerable.Range(stack_size - popDelta, pushDelta).Skip(skip))
                 {
-                    // for sake of simplicity, a DUP opcode only defines
-                    // one variable. semantic-wise, the consumed operand is left 
-                    // untouched.
-                    defs[instruction].RemoveAt(0);
+                    Register definedRegister = irBody.Registers[index];
+                    definedRegister.AddDefinition(tacInstruction);
                 }
 
                 // Analyze which local variables or arguments are consumed
-                ConsumeLocalVariables(instruction, defs, uses, argVariables, localVariables, body.Method.HasThis);
+                ConsumeLocalVariables(instruction, tacInstruction, irBody, body.Method.HasThis);
             }
 
-            SetExceptionVariables(body, stackVariables, uses, variables);
+            SetExceptionVariables(body, irBody, cecilToTac);
+
+            return irBody;
         }
 
-        static void ConsumeLocalVariables(Instruction instruction, Dictionary<Instruction, List<Variable>> defs, Dictionary<Instruction, List<Variable>> uses, List<Variable> argVariables, List<Variable> localVariables, bool hasThis)
+        private static Dictionary<Code, int> VariableIndex = new Dictionary<Code, int>()
         {
-            switch (instruction.OpCode.Code)
+            { Code.Ldloc_0, 0}, { Code.Ldloc_1, 1}, { Code.Ldloc_2, 2}, { Code.Ldloc_3, 3},
+            { Code.Ldarg_0, 0}, { Code.Ldarg_1, 1}, { Code.Ldarg_2, 2}, { Code.Ldarg_3, 3},
+            { Code.Stloc_0, 0}, { Code.Stloc_1, 1}, { Code.Stloc_2, 2}, { Code.Stloc_3, 3},
+        };
+
+        static void ConsumeLocalVariables(Instruction instruction, TacInstruction tacInstruction, IRBody irBody, bool hasThis)
+        {
+            var code = instruction.OpCode.Code;
+            switch (code)
             {
                 case Code.Ldloc_0:
-                    uses[instruction].Add(localVariables[0]);
-                    break;
                 case Code.Ldloc_1:
-                    uses[instruction].Add(localVariables[1]);
-                    break;
                 case Code.Ldloc_2:
-                    uses[instruction].Add(localVariables[2]);
-                    break;
                 case Code.Ldloc_3:
-                    uses[instruction].Add(localVariables[3]);
-                    break;
+                    {
+                        MemoryVariable var = irBody.MemoryLocalVariables[VariableIndex[code]];
+                        var.AddUse(tacInstruction);
+                        break;
+                    }
                 case Code.Ldloca_S:
                 case Code.Ldloca:
                 case Code.Ldloc:
                 case Code.Ldloc_S:
                     {
-                        var variableDefinition = (VariableDefinition)instruction.Operand;
-                        uses[instruction].Add(localVariables[variableDefinition.Index]);
+                        VariableDefinition variableDefinition = (VariableDefinition)instruction.Operand;
+                        MemoryVariable var = irBody.MemoryLocalVariables[variableDefinition.Index];
+                        var.AddUse(tacInstruction); ;
                         break;
                     }
                 case Code.Stloc_3:
-                    defs[instruction].Add(localVariables[3]);
-                    break;
                 case Code.Stloc_2:
-                    defs[instruction].Add(localVariables[2]);
-                    break;
                 case Code.Stloc_1:
-                    defs[instruction].Add(localVariables[1]);
-                    break;
                 case Code.Stloc_0:
-                    defs[instruction].Add(localVariables[0]);
-                    break;
+                    {
+                        MemoryVariable var = irBody.MemoryLocalVariables[VariableIndex[code]];
+                        var.AddDefinition(tacInstruction);
+                        break;
+                    }
                 case Code.Stloc:
                 case Code.Stloc_S:
                     {
                         var variableDefinition = (VariableDefinition)instruction.Operand;
-                        defs[instruction].Add(localVariables[variableDefinition.Index]);
+                        MemoryVariable var = irBody.MemoryLocalVariables[variableDefinition.Index];
+                        var.AddDefinition(tacInstruction);
                         break;
                     }
                 case Code.Starg:
                 case Code.Starg_S:
                     {
                         var parameterDefinition = (ParameterDefinition)instruction.Operand;
-                        defs[instruction].Add(argVariables[parameterDefinition.Index]);
+                        MemoryVariable var = irBody.MemoryArgumentVariables[parameterDefinition.Index];
+                        var.AddDefinition(tacInstruction);
                         break;
                     }
                 case Code.Ldarg_0:
-                    uses[instruction].Add(argVariables[0]);
-                    break;
                 case Code.Ldarg_1:
-                    uses[instruction].Add(argVariables[1]);
-                    break;
                 case Code.Ldarg_2:
-                    uses[instruction].Add(argVariables[2]);
-                    break;
                 case Code.Ldarg_3:
-                    uses[instruction].Add(argVariables[3]);
-                    break;
+                    {
+                        MemoryVariable var = irBody.MemoryArgumentVariables[VariableIndex[code]];
+                        var.AddUse(tacInstruction);
+                        break;
+                    }
                 case Code.Ldarg:
                 case Code.Ldarg_S:
                 case Code.Ldarga_S:
@@ -129,17 +150,18 @@ namespace NetSsa.Analyses
                         var parameterDefinition = (ParameterDefinition)instruction.Operand;
                         int index = parameterDefinition.Index;
                         int offset = hasThis ? 1 : 0;
-                        uses[instruction].Add(argVariables[index + offset]);
+                        MemoryVariable var = irBody.MemoryArgumentVariables[index + offset];
+                        var.AddUse(tacInstruction);
                         break;
                     }
             }
         }
-        static void SetExceptionVariables(MethodBody body, IEnumerable<Variable> stackVariables, Dictionary<Instruction, List<Variable>> uses, List<Variable> variables)
+        static void SetExceptionVariables(MethodBody body, IRBody irBody, IDictionary<Mono.Cecil.Cil.Instruction, LinkedListNode<TacInstruction>> cecilToTac)
         {
             /*
                 At the beginning of a catch handler, the stack always contains the caught exception.
-                This stack slot is not defined by an instruction in the method body. The assignment is performed 
-                by the exception handling mechanism of the runtime. 
+                This stack slot is not defined by an instruction in the method body. The assignment is performed
+                by the exception handling mechanism of the runtime.
 
                 At bytecode level, suppose we have:
 
@@ -151,7 +173,7 @@ namespace NetSsa.Analyses
                         } catch {
                             // the stack has size 1 and contains
                             // a reference to the caught exception
-                            pop 
+                            pop
                             leave ...
                         }
                     }
@@ -187,7 +209,7 @@ namespace NetSsa.Analyses
                 return;
             }
 
-            Variable stackSlotZero = stackVariables.ElementAt(0);
+            Register stackSlotZero = irBody.Registers[0];
 
             int exceptionIndex = 0;
             foreach (var handler in body.ExceptionHandlers)
@@ -207,35 +229,45 @@ namespace NetSsa.Analyses
                 if (handler.HandlerType == ExceptionHandlerType.Catch ||
                     handler.HandlerType == ExceptionHandlerType.Filter)
                 {
-                    SetExceptionVariable(body, stackSlotZero, handler, uses, variables, ref exceptionIndex);
+                    SetExceptionVariable(body, stackSlotZero, handler, cecilToTac, irBody.Registers, ref exceptionIndex);
                 }
-
             }
         }
 
-        static void SetExceptionVariable(MethodBody body, Variable stackSlotZero, ExceptionHandler handler, Dictionary<Instruction, List<Variable>> uses, List<Variable> variables, ref int exceptionIndex)
+        static void SetExceptionVariable(MethodBody body, Register stackSlotZero, ExceptionHandler handler, IDictionary<Mono.Cecil.Cil.Instruction, LinkedListNode<TacInstruction>> cecilToTac, IList<Register> registers, ref int exceptionIndex)
         {
             if (handler.FilterStart != null)
             {
-                ChangeVariableFirstUse(handler.FilterStart, handler.HandlerStart, stackSlotZero, uses, variables, ref exceptionIndex);
+                ChangeVariableFirstUse(handler.FilterStart, handler.HandlerStart, stackSlotZero, cecilToTac, registers, ref exceptionIndex);
             }
 
-            ChangeVariableFirstUse(handler.HandlerStart, handler.HandlerEnd, stackSlotZero, uses, variables, ref exceptionIndex);
+            ChangeVariableFirstUse(handler.HandlerStart, handler.HandlerEnd, stackSlotZero, cecilToTac, registers, ref exceptionIndex);
         }
 
-        static void ChangeVariableFirstUse(Instruction start, Instruction end, Variable stackSlotZero, Dictionary<Instruction, List<Variable>> uses, List<Variable> variables, ref int exceptionIndex)
+        static void ChangeVariableFirstUse(Instruction start, Instruction end, Register stackSlotZero, IDictionary<Mono.Cecil.Cil.Instruction, LinkedListNode<TacInstruction>> cecilToTac, IList<Register> registers, ref int exceptionIndex)
         {
             var currentInstruction = start;
-            int index = -1;
-            while (currentInstruction != end && index == -1)
+            while (currentInstruction != end)
             {
-                List<Variable> currentUses = uses[currentInstruction];
-                index = currentUses.IndexOf(stackSlotZero);
-                if (index != -1)
+                TacInstruction tacInstruction = cecilToTac[currentInstruction].Value;
+
+                if (stackSlotZero.Uses.Contains(tacInstruction))
                 {
-                    currentUses[index] = new Variable(Variable.ExceptionVariablePrefix + (exceptionIndex++));
-                    variables.Add(currentUses[index]);
+
+                    Register exceptionRegister = new Register(Register.ExceptionPrefix + (exceptionIndex++))
+                    {
+                        IsException = true
+                    };
+
+                    registers.Add(exceptionRegister);
+
+                    exceptionRegister.Uses.Add(tacInstruction);
+                    int index = tacInstruction.Operands.IndexOf(stackSlotZero);
+                    tacInstruction.Operands[index] = exceptionRegister;
+                    stackSlotZero.RemoveUse(tacInstruction, false);
+                    break;
                 }
+
                 currentInstruction = currentInstruction.Next;
             }
         }

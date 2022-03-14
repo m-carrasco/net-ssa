@@ -3,9 +3,9 @@
 
 // RUN: %FileCheck %s < %t.phi_location
 
-// CHECK: phi_location: 
-// CHECK: 	s0 IL_0022
-// CHECK: 	s1 IL_0022
+// CHECK: phi_location:
+// CHECK: 	s0 IL_0025
+// CHECK: 	s1 IL_0025
 
 using System;
 

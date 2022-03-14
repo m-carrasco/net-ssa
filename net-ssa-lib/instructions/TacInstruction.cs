@@ -2,16 +2,21 @@
 using NetSsa.Analyses;
 using System;
 using System.Linq;
+
 namespace NetSsa.Instructions
 {
     public abstract class TacInstruction
     {
         public LinkedListNode<TacInstruction> Node;
-        public Variable Result;
-        public List<Variable> Operands = new List<Variable>();
-
         public abstract String Label();
 
+        public IList<ValueContainer> Operands = new List<ValueContainer>();
+        public ValueContainer Result;
+
+        public static readonly IComparer<TacInstruction> LabelComparer = Comparer<TacInstruction>.Create((x, y) =>
+        {
+            return x.Label().CompareTo(y.Label());
+        });
     }
 
     public static class Extensions
@@ -42,26 +47,5 @@ namespace NetSsa.Instructions
             return (PhiInstruction)previousPhi.Value;
         }
 
-        public static ISet<TacInstruction> GetPhiAwareSuccessors(this TacInstruction instruction)
-        {
-            var result = new HashSet<TacInstruction>();
-            if (instruction is ControlFlowInstruction controlFlowInstruction)
-            {
-                foreach (var t in controlFlowInstruction.Targets.Distinct().Select(s => s.HasPhiPredecessor() ? s.GetLastPhiPredecessor() : s))
-                {
-                    result.Add(t);
-                }
-            }
-
-            // Fall-through semantics
-            var nextNode = instruction.Node.Next;
-            if (nextNode != null)
-            {
-                var nextInst = nextNode.Value;
-                result.Add(nextInst);
-            }
-
-            return result;
-        }
     }
 }

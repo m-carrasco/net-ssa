@@ -58,7 +58,7 @@ namespace NetSsaCli
         static void PhiLocMethod(MethodDefinition m)
         {
             var body = m.Body;
-            var varDef = SsaFacts.VarDef(body);
+            var varDef = SsaFacts.VarDefRegisters(Unstacker.Compute(body));
             var successor = SsaFacts.Successor(body);
             var entryInstruction = SsaFacts.EntryInstruction(body);
 
@@ -103,7 +103,7 @@ namespace NetSsaCli
             Console.WriteLine("Method: " + m.FullName);
 
             var body = m.Body;
-            var varDef = SsaFacts.VarDef(body);
+            var varDef = SsaFacts.VarDefRegisters(Unstacker.Compute(body));
             var successor = SsaFacts.Successor(body);
 
             var result = SsaQuery.Query(SsaFacts.EntryInstruction(body), successor, varDef);

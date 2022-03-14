@@ -2,10 +2,10 @@
 // RUN: %net-ssa-cli %T/Test.dll disassemble method "System.Int32 Test::Foo(System.Int32)" > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
-// CHECK: IL_0000: s0 = a0
-// CHECK: IL_0001: call System.Void System.Console::WriteLine(System.Object) [s0]
-// CHECK: IL_0006: s0 = a1
-// CHECK: IL_0007: ret s0
+// CHECK: {{.*}}: s0 = ldarg.0 [a0]
+// CHECK: {{.*}}: call System.Void System.Console::WriteLine(System.Object) [s0]
+// CHECK: {{.*}}: s0 = ldarg.1 [a1]
+// CHECK: {{.*}}: ret [s0]
 
 using System;
 
