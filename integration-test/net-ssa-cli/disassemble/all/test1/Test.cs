@@ -1,5 +1,4 @@
 // RUN: %net-ssa-cli /usr/lib/mono/4.5/mscorlib.dll disassemble all > %t.disassemble
-// RUN /home/manuel/net-ssa/build/bin/net-ssa/net-ssa-cli /usr/lib/mono/4.5/mscorlib.dll disassemble method "System.UInt32 <PrivateImplementationDetails>::ComputeStringHash(System.String)" > %t.disassemble
 // RUN: %FileCheck %s --match-full-lines < %t.disassemble
 
 // COM: It is testing only the last method.
