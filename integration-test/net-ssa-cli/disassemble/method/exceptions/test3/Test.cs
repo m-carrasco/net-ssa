@@ -3,36 +3,45 @@
 // RUN: %FileCheck %s < %t.disassemble
 
 /*
-// CHECK: {{.*}}: nop
-// CHECK: {{.*}}: s0 = ldc.i4.m1
-// CHECK: {{.*}}: l0 = stloc.0 [s0]
-// CHECK: {{.*}}: s0 = ldloc.0 [l0]
-// CHECK: {{.*}}: s1 = ldc.i4.1
-// CHECK: {{.*}}: s0 = add [s0, s1]
-// CHECK: {{.*}}: l0 = stloc.0 [s0]
-// CHECK: {{.*}}: leave [[IL_0033:.*]]
-// CHECK: {{.*}}: nop
-// CHECK: {{.*}}: s0 = isinst System.Exception [e0]
-// CHECK: {{.*}}: l1 = stloc.1 [s0]
-// CHECK: {{.*}}: s0 = ldloc.1 [l1]
-// CHECK: {{.*}}: brtrue.s [[IL_001c:.*]] [s0]
-// CHECK: {{.*}}: s0 = ldc.i4.0
-// CHECK: {{.*}}: br IL_0020
-// CHECK: [[IL_001c]]: s0 = ldloc.0 [l0]
-// CHECK: {{.*}}: s1 = ldc.i4.2
-// CHECK: {{.*}}: s0 = ceq [s0, s1]
-// CHECK: {{.*}}: endfilter [s0]
-// CHECK: {{.*}}: nop
-// CHECK: {{.*}}: pop [e1]
-// CHECK: {{.*}}: s0 = ldloc.0 [l0]
-// CHECK: {{.*}}: s1 = ldc.i4.1
-// CHECK: {{.*}}: s0 = add [s0, s1]
-// CHECK: {{.*}}: l0 = stloc.0 [s0]
-// CHECK: {{.*}}: s0 = ldloc.1 [l1]
-// CHECK: {{.*}}: call System.Void Test::Bar(System.Exception) [s0]
-// CHECK: {{.*}}: leave [[IL_0033]]
-// CHECK: [[IL_0033]]: s0 = ldloc.0 [l0]
-// CHECK: {{.*}}: ret [s0]
+//CHECK: {{.*}}: label
+//CHECK: {{.*}}: nop
+//CHECK: {{.*}}: s0 = ldc.i4.m1
+//CHECK: {{.*}}: l0 = stloc.0 [s0]
+//CHECK: {{.*}}: label
+//CHECK: {{.*}}: s0 = ldloc.0 [l0]
+//CHECK: {{.*}}: s1 = ldc.i4.1
+//CHECK: {{.*}}: s0 = add [s0, s1]
+//CHECK: {{.*}}: l0 = stloc.0 [s0]
+//CHECK: {{.*}}: leave [[L_0024:.*]]
+//CHECK: {{.*}}: label
+//CHECK: {{.*}}: nop
+//CHECK: {{.*}}: label
+//CHECK: {{.*}}: s0 = isinst System.Exception [e0]
+//CHECK: {{.*}}: l1 = stloc.1 [s0]
+//CHECK: {{.*}}: s0 = ldloc.1 [l1]
+//CHECK: {{.*}}: brtrue.s [[L_0014:.*]] [s0]
+//CHECK: {{.*}}: label
+//CHECK: {{.*}}: s0 = ldc.i4.0
+//CHECK: {{.*}}: br L_0018
+//CHECK: [[L_0014]]: label
+//CHECK: {{.*}}: s0 = ldloc.0 [l0]
+//CHECK: {{.*}}: s1 = ldc.i4.2
+//CHECK: {{.*}}: s0 = ceq [s0, s1]
+//CHECK: {{.*}}: label
+//CHECK: {{.*}}: endfilter  [s0]
+//CHECK: {{.*}}: label
+//CHECK: {{.*}}: nop
+//CHECK: {{.*}}: pop [e1]
+//CHECK: {{.*}}: s0 = ldloc.0 [l0]
+//CHECK: {{.*}}: s1 = ldc.i4.1
+//CHECK: {{.*}}: s0 = add [s0, s1]
+//CHECK: {{.*}}: l0 = stloc.0 [s0]
+//CHECK: {{.*}}: s0 = ldloc.1 [l1]
+//CHECK: {{.*}}: call System.Void Test::Bar(System.Exception) [s0]
+//CHECK: {{.*}}: leave [[L_0024]]
+//CHECK: [[L_0024]]: label
+//CHECK: {{.*}}: s0 = ldloc.0 [l0]
+//CHECK: {{.*}}: ret  [s0]
 */
 
 using System;

@@ -18,9 +18,9 @@ namespace NetSsa.Analyses
             ComputeLeaders();
         }
 
-        private SortedSet<TacInstruction> _entries = new SortedSet<TacInstruction>(TacInstruction.LabelComparer);
+        private ISet<TacInstruction> _entries = new HashSet<TacInstruction>();
 
-        private SortedSet<TacInstruction> _leaders = new SortedSet<TacInstruction>(TacInstruction.LabelComparer);
+        private ISet<TacInstruction> _leaders = new HashSet<TacInstruction>();
 
         public ISet<TacInstruction> Entries()
         {
@@ -59,7 +59,7 @@ namespace NetSsa.Analyses
                 }
             }
 
-            throw new ArgumentException("The instruction does not belong to any basic block.");
+            throw new ArgumentException("The instruction does not belong to any basic block: " + instruction);
         }
 
         public IEnumerable<TacInstruction> ExceptionHandlerEntries()
@@ -97,7 +97,7 @@ namespace NetSsa.Analyses
             {
                 foreach (TacInstruction explicitTarget in cfInstruction.Targets)
                 {
-                    TacInstruction target = explicitTarget.HasPhiPredecessor() ? explicitTarget.GetLastPhiPredecessor() : explicitTarget;
+                    TacInstruction target = explicitTarget;
                     _leaders.Add(target);
                 }
 
@@ -131,7 +131,7 @@ namespace NetSsa.Analyses
             {
                 foreach (TacInstruction target in controlFlowInstruction.Targets)
                 {
-                    successors.Add(target.HasPhiPredecessor() ? target.GetLastPhiPredecessor() : target);
+                    successors.Add(target);
                 }
             }
 
@@ -151,6 +151,11 @@ namespace NetSsa.Analyses
             if (last is PhiInstruction)
             {
                 throw new NotSupportedException("The last instruction of a basic block " + leader.ToString() + "cannot be a phi instruction: " + last.ToString());
+            }
+
+            if (last is LabelInstruction)
+            {
+                throw new NotSupportedException("The last instruction of a basic block " + leader.ToString() + "cannot be a label instruction: " + last.ToString());
             }
 
             return successors.ToList();

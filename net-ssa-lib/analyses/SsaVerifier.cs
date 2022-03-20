@@ -103,7 +103,8 @@ namespace NetSsa.Analyses
         private void CheckPhiNodesInBasicBlock(TacInstruction leader)
         {
             bool canBePhiNode = true;
-            foreach (TacInstruction bbInstruction in _cfg.BasicBlockInstructions(leader))
+            // Skip label
+            foreach (TacInstruction bbInstruction in _cfg.BasicBlockInstructions(leader).Skip(1))
             {
                 if (bbInstruction is PhiInstruction phi)
                 {

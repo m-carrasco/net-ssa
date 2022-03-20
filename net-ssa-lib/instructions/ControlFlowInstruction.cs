@@ -7,8 +7,8 @@ namespace NetSsa.Instructions
 {
     public class ControlFlowInstruction : BytecodeInstruction
     {
-        public ControlFlowInstruction(Instruction bytecode) : base(bytecode.OpCode, null, bytecode.Offset) { }
-        public ControlFlowInstruction(OpCode opCode, int offset) : base(opCode, null, offset) { }
+        public ControlFlowInstruction(Instruction bytecode) : base(bytecode.OpCode, null) { }
+        public ControlFlowInstruction(OpCode opCode) : base(opCode, null) { }
         public static bool CanFallThrough(FlowControl flowControl)
         {
             switch (flowControl)
@@ -65,7 +65,7 @@ namespace NetSsa.Instructions
             return true;
         }
 
-        public List<TacInstruction> Targets = new List<TacInstruction>();
+        public List<LabelInstruction> Targets = new List<LabelInstruction>();
 
     }
 }

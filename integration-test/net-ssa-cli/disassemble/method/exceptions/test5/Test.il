@@ -7,7 +7,8 @@
 // CHECK: {{.*}}: leave.s [[IL_0008:.*]] [e0]
 // COM: leave must consume everything on the stack.
 // COM: the stack size after a leave must be 0.
-// CHECK: [[IL_0008]]: s0 = ldc.i4.s 42
+// CHECK: [[IL_0008]]: label
+// CHECK: {{.*}}: s0 = ldc.i4.s 42
 // CHECK: {{.*}}: ret [s0]
 
 

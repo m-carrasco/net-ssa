@@ -2,13 +2,18 @@
 // RUN:  %net-ssa-cli %T/Test.dll disassemble --type Ssa all > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
+// CHECK: {{.*}}: label
+// CHECK: {{.*}}: nop
 // CHECK: {{.*}}: s0_0 = ldarg.0 [a0]
-// CHECK: {{.*}}: brfalse.s [[IL_0006:.*]] [s0_0]
+// CHECK: {{.*}}: brfalse.s [[L_0007:.*]] [s0_0]
+// CHECK: [[L_0004:.*]]: label
 // CHECK: {{.*}}: s0_2 = ldc.i4.1
-// CHECK: [[IL_0004:.*]]: br.s [[IL_0007:.*]]
-// CHECK: [[IL_0006]]: s0_1 = ldc.i4.2
-// CHECK: {{.*}}: s0_3 = phi [(s0_2,[[IL_0004]]),(s0_1,[[IL_0006]])]
-// CHECK: [[IL_0007]]: ret [s0_3]
+// CHECK: {{.*}}: br.s L_0009
+// CHECK: [[L_0007]]: label
+// CHECK: {{.*}}: s0_1 = ldc.i4.2
+// CHECK: {{.*}}: label
+// CHECK: {{.*}}: s0_3 = phi [(s0_1,[[L_0007]]),(s0_2,[[L_0004]])]
+// CHECK: {{.*}}: ret  [s0_3]
 
 .assembly extern mscorlib
 {

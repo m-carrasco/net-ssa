@@ -94,21 +94,6 @@ namespace UnitTest
         }
 
         [Test]
-        public void TestSsaQuery()
-        {
-            var methodDefinition = definedMethods.Where(method => method.Name.Contains("TestPhiCode")).Single();
-            var body = methodDefinition.Body;
-
-            IRBody irBody = Unstacker.Compute(methodDefinition.Body);
-            var varDef = SsaFacts.VarDefRegisters(irBody);
-            var successor = SsaFacts.Successor(body);
-
-            var result = SsaQuery.Query(SsaFacts.EntryInstruction(body), successor, varDef);
-
-            Assert.AreEqual(result.PhiLocation.Count(), 1);
-        }
-
-        [Test]
         public void TestSsaVerifierSelfReferential()
         {
             // Only a phi node can be self referential
@@ -116,7 +101,7 @@ namespace UnitTest
             irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
             irBody.Instructions = new LinkedList<TacInstruction>();
 
-            BytecodeInstruction inst = new BytecodeInstruction(OpCodes.Nop, null, 0);
+            BytecodeInstruction inst = new BytecodeInstruction(OpCodes.Nop, null);
             Register result = new Register("dummy");
             inst.Result = result;
             result.AddDefinition(inst);
@@ -135,12 +120,12 @@ namespace UnitTest
             irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
             irBody.Instructions = new LinkedList<TacInstruction>();
 
-            BytecodeInstruction inst = new BytecodeInstruction(OpCodes.Nop, null, 0);
+            BytecodeInstruction inst = new BytecodeInstruction(OpCodes.Nop, null);
             Register result = new Register("dummy0");
             result.AddDefinition(inst);
             inst.Node = irBody.Instructions.AddLast(inst);
 
-            inst = new BytecodeInstruction(OpCodes.Nop, null, 1);
+            inst = new BytecodeInstruction(OpCodes.Nop, null);
             result.AddDefinition(inst);
             inst.Node = irBody.Instructions.AddLast(inst);
 
@@ -156,19 +141,21 @@ namespace UnitTest
             irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
             irBody.Instructions = new LinkedList<TacInstruction>();
 
-            BytecodeInstruction nop = new BytecodeInstruction(OpCodes.Nop, null, 0);
-            ControlFlowInstruction br = new ControlFlowInstruction(OpCodes.Br, 1);
-            BytecodeInstruction def = new BytecodeInstruction(OpCodes.Nop, null, 2);
-            BytecodeInstruction use = new BytecodeInstruction(OpCodes.Nop, null, 3);
+            BytecodeInstruction nop = new BytecodeInstruction(OpCodes.Nop, null);
+            ControlFlowInstruction br = new ControlFlowInstruction(OpCodes.Br);
+            BytecodeInstruction def = new BytecodeInstruction(OpCodes.Nop, null);
+            LabelInstruction label = new LabelInstruction();
+            BytecodeInstruction use = new BytecodeInstruction(OpCodes.Nop, null);
 
             nop.Node = irBody.Instructions.AddLast(nop);
             br.Node = irBody.Instructions.AddLast(br);
             def.Node = irBody.Instructions.AddLast(def);
+            label.Node = irBody.Instructions.AddLast(label);
             use.Node = irBody.Instructions.AddLast(use);
 
             Register result = new Register("dummy0");
             result.AddDefinition(def);
-            br.Targets.Add(use);
+            br.Targets.Add(label);
             result.AddUse(use);
 
             SsaVerifier ssaVerifier = new SsaVerifier(irBody);
@@ -184,22 +171,24 @@ namespace UnitTest
             irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
             irBody.Instructions = new LinkedList<TacInstruction>();
 
-            BytecodeInstruction nop0 = new BytecodeInstruction(OpCodes.Nop, null, 0);
-            ControlFlowInstruction br = new ControlFlowInstruction(OpCodes.Brfalse_S, 1);
-            BytecodeInstruction nop1 = new BytecodeInstruction(OpCodes.Nop, null, 2);
+            BytecodeInstruction nop0 = new BytecodeInstruction(OpCodes.Nop, null);
+            ControlFlowInstruction br = new ControlFlowInstruction(OpCodes.Brfalse_S);
+            BytecodeInstruction nop1 = new BytecodeInstruction(OpCodes.Nop, null);
+            LabelInstruction label = new LabelInstruction();
             PhiInstruction phi = new PhiInstruction();
-            BytecodeInstruction nop2 = new BytecodeInstruction(OpCodes.Nop, null, 3);
+            BytecodeInstruction nop2 = new BytecodeInstruction(OpCodes.Nop, null);
 
             nop0.Node = irBody.Instructions.AddLast(nop0);
             br.Node = irBody.Instructions.AddLast(br);
             nop1.Node = irBody.Instructions.AddLast(nop1);
+            label.Node = irBody.Instructions.AddLast(label);
             phi.Node = irBody.Instructions.AddLast(phi);
             nop2.Node = irBody.Instructions.AddLast(nop2);
 
             Register res0 = new Register("dummy0");
             res0.AddDefinition(nop0);
 
-            br.Targets.Add(phi);
+            br.Targets.Add(label);
 
             Register res1 = new Register("dummy1");
             res1.AddDefinition(nop1);
@@ -222,16 +211,18 @@ namespace UnitTest
             irBody.ExceptionHandlers = new List<ExceptionHandlerEntry>();
             irBody.Instructions = new LinkedList<TacInstruction>();
 
-            BytecodeInstruction nop0 = new BytecodeInstruction(OpCodes.Nop, null, 0);
-            ControlFlowInstruction br = new ControlFlowInstruction(OpCodes.Brfalse_S, 1);
-            BytecodeInstruction nop1 = new BytecodeInstruction(OpCodes.Nop, null, 2);
-            BytecodeInstruction nop2 = new BytecodeInstruction(OpCodes.Nop, null, 3);
+            BytecodeInstruction nop0 = new BytecodeInstruction(OpCodes.Nop, null);
+            ControlFlowInstruction br = new ControlFlowInstruction(OpCodes.Brfalse_S);
+            BytecodeInstruction nop1 = new BytecodeInstruction(OpCodes.Nop, null);
+            LabelInstruction label = new LabelInstruction();
+            BytecodeInstruction nop2 = new BytecodeInstruction(OpCodes.Nop, null);
             PhiInstruction phi = new PhiInstruction();
-            BytecodeInstruction nop3 = new BytecodeInstruction(OpCodes.Nop, null, 4);
+            BytecodeInstruction nop3 = new BytecodeInstruction(OpCodes.Nop, null);
 
             nop0.Node = irBody.Instructions.AddLast(nop0);
             br.Node = irBody.Instructions.AddLast(br);
             nop1.Node = irBody.Instructions.AddLast(nop1);
+            label.Node = irBody.Instructions.AddLast(label);
             nop2.Node = irBody.Instructions.AddLast(nop2);
             phi.Node = irBody.Instructions.AddLast(phi);
             nop3.Node = irBody.Instructions.AddLast(nop3);
@@ -239,7 +230,7 @@ namespace UnitTest
             Register res0 = new Register("dummy0");
             res0.AddDefinition(nop0);
 
-            br.Targets.Add(nop2);
+            br.Targets.Add(label);
 
             Register res1 = new Register("dummy1");
             res1.AddDefinition(nop1);
@@ -265,19 +256,9 @@ namespace UnitTest
             Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
 
             IRBody irBody = Unstacker.Compute(body);
-            foreach (NetSsa.Instructions.BytecodeInstruction ins in irBody.Instructions.Cast<BytecodeInstruction>())
+            foreach (NetSsa.Instructions.TacInstruction ins in irBody.Instructions)
             {
-                Console.WriteLine("Opcode: " + ins.OpCode.Code);
-
-                foreach (NetSsa.Analyses.ValueContainer op in ins.Operands)
-                {
-                    Console.WriteLine("Operand: " + op.Name);
-                }
-
-                if (ins.Result != null)
-                {
-                    Console.WriteLine("Result: " + ins.Result.Name);
-                }
+                Console.WriteLine(ins);
             }
         }
     }

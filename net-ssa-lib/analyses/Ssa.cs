@@ -17,22 +17,48 @@ namespace NetSsa.Analyses
             // They don't make much sense in a register-based representation.
             ReplacePopByNop(irBody);
 
-            var varDef = SsaFacts.VarDefRegisters(irBody);
-            var entryInstructions = SsaFacts.EntryInstruction(method.Body);
-            var successor = SsaFacts.Successor(method.Body);
+            ControlFlowGraph cfg = new ControlFlowGraph(irBody);
+
+            var varDef = RegisterDefFacts(cfg);
+            var entryInstructions = cfg.Entries().Select(entry => Tuple.Create<String>(entry.Label()));
+            var successor = SuccessorFacts(cfg);
 
             SsaQuery.Result ssaResult = SsaQuery.Query(entryInstructions, successor, varDef);
 
-            InsertPhis(irBody, ssaResult, successor, out Dictionary<String, LinkedListNode<TacInstruction>> labelToInstruction);
+            InsertPhis(cfg, ssaResult, successor);
 
-            Dictionary<BytecodeInstruction, ISet<LinkedListNode<TacInstruction>>> successors = Successors(successor, labelToInstruction);
             List<Register> newVariables = new List<Register>();
 
-            Rename(irBody.Instructions, irBody.Registers, newVariables, ssaResult.ImmediateDominator, labelToInstruction, successors);
-
+            Rename(cfg, irBody.Registers, newVariables, ssaResult.ImmediateDominator);
             irBody.Registers = newVariables;
-
             RemoveUnusedPhiNodes(irBody);
+        }
+
+        private static IEnumerable<(String, String)> RegisterDefFacts(ControlFlowGraph cfg)
+        {
+            IRBody irBody = cfg.IRBody;
+
+            foreach (TacInstruction leader in cfg.Leaders())
+            {
+                foreach (TacInstruction inst in cfg.BasicBlockInstructions(leader))
+                {
+                    if (inst.Result is Register register)
+                    {
+                        yield return (register.Name, leader.Label());
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<(String, String)> SuccessorFacts(ControlFlowGraph cfg)
+        {
+            foreach (TacInstruction leader in cfg.Leaders())
+            {
+                foreach (TacInstruction successor in cfg.BasicBlockSuccessors(leader))
+                {
+                    yield return (leader.Label(), successor.Label());
+                }
+            }
         }
 
         private static void RemoveUnusedPhiNodes(IRBody ssaBody)
@@ -64,41 +90,50 @@ namespace NetSsa.Analyses
 
                 Alternatively, we could compute an ssa based on live values but it is more expensive.
             */
-
-            ISet<PhiInstruction> visited = new HashSet<PhiInstruction>();
-            Stack<PhiInstruction> sources = new Stack<PhiInstruction>();
-
             var initials = ssaBody.Instructions.OfType<PhiInstruction>().Where(phi => phi.Result.Uses.Count == 0 || phi.Operands.Any(op => op.Equals(Register.UndefinedRegister)));
-            foreach (PhiInstruction phi in initials)
+            do
             {
-                sources.Push(phi);
-                visited.Add(phi);
-            }
+                ISet<PhiInstruction> visited = new HashSet<PhiInstruction>();
+                Stack<PhiInstruction> sources = new Stack<PhiInstruction>();
 
-            while (sources.Count > 0)
-            {
-                PhiInstruction current = sources.Pop();
-                Register def = (Register)current.Result;
-                foreach (PhiInstruction phiUses in def.Uses.Cast<PhiInstruction>())
+                foreach (PhiInstruction phi in initials)
                 {
-                    if (!visited.Contains(phiUses))
+                    sources.Push(phi);
+                    visited.Add(phi);
+                }
+
+                while (sources.Count > 0)
+                {
+                    PhiInstruction current = sources.Pop();
+                    Register def = (Register)current.Result;
+                    foreach (PhiInstruction phiUses in def.Uses.Cast<PhiInstruction>())
                     {
-                        sources.Push(phiUses);
-                        visited.Add(phiUses);
+                        if (!visited.Contains(phiUses))
+                        {
+                            sources.Push(phiUses);
+                            visited.Add(phiUses);
+                        }
                     }
                 }
-            }
 
-            foreach (PhiInstruction visitedPhi in visited)
-            {
-                ssaBody.Instructions.Remove(visitedPhi.Node);
-                ssaBody.Registers.Remove((Register)visitedPhi.Result);
-            }
+                foreach (PhiInstruction visitedPhi in visited)
+                {
+                    ssaBody.Instructions.Remove(visitedPhi.Node);
+                    ssaBody.Registers.Remove((Register)visitedPhi.Result);
+                    foreach (ValueContainer use in visitedPhi.Operands)
+                    {
+                        use.RemoveUse(visitedPhi, false);
+                    }
+                }
+
+                // There can be a phi node that now is no longer used.
+                initials = ssaBody.Instructions.OfType<PhiInstruction>().Where(phi => phi.Result.Uses.Count == 0);
+            } while (initials.Count() > 0);
         }
 
         private static void ReplacePopByNop(IRBody body)
         {
-            foreach (BytecodeInstruction pop in body.Instructions.Cast<BytecodeInstruction>().Where(i => i.OpCode.Equals(OpCodes.Pop)))
+            foreach (BytecodeInstruction pop in body.Instructions.OfType<BytecodeInstruction>().Where(i => i.OpCode.Equals(OpCodes.Pop)))
             {
                 pop.OpCode = OpCodes.Nop;
                 pop.Operands.First().RemoveUse(pop);
@@ -128,51 +163,44 @@ namespace NetSsa.Analyses
         }
 
         public static void InsertPhis(
-                                    IRBody irBody,
+                                    ControlFlowGraph cfg,
                                     SsaQuery.Result ssaQuery,
-                                    IEnumerable<(String, String)> successor,
-                                    out Dictionary<String, LinkedListNode<TacInstruction>> labelToInstruction)
+                                    IEnumerable<(String, String)> successor)
         {
+            IRBody irBody = cfg.IRBody;
             var instructions = irBody.Instructions;
 
-            Dictionary<String, ISet<String>> predecessors = Predecessors(successor);
-            Dictionary<String, LinkedListNode<TacInstruction>> labelToBytecode = LabelToBytecode(instructions);
-            Dictionary<String, Register> nameToVariable = NameToRegister(irBody.Registers);
+            Dictionary<String, TacInstruction> leadersByLabel = cfg.Leaders().ToDictionary(t => t.Label());
+            Dictionary<String, Register> nameToRegister = irBody.Registers.ToDictionary(r => r.Name);
 
-            uint id = 0;
+            List<PhiInstruction> phis = new List<PhiInstruction>();
             foreach ((String, String) phiLocation in ssaQuery.PhiLocation)
             {
-                String variableName = phiLocation.Item1;
+                String registerName = phiLocation.Item1;
                 String locationLabel = phiLocation.Item2;
 
-                Register variable = nameToVariable[variableName];
-                LinkedListNode<TacInstruction> locationNode = labelToBytecode[locationLabel];
+                Register variable = nameToRegister[registerName];
+                LinkedListNode<TacInstruction> locationNode = leadersByLabel[locationLabel].Node;
 
                 PhiInstruction phi = new PhiInstruction();
-                ISet<String> predecessorLabels = predecessors[locationLabel];
-                // phi.Operands = Enumerable.Repeat(variable, predecessorLabels.Count).OfType<ValueContainer>().ToList();
-                // phi.Result = variable;
-                foreach (var op in Enumerable.Repeat(variable, predecessorLabels.Count).OfType<ValueContainer>())
+                var preds = cfg.BasicBlockPredecessors(locationNode.Value);
+                foreach (var op in Enumerable.Repeat(variable, preds.Count()).OfType<ValueContainer>())
                 {
                     variable.AddUse(phi);
                 }
                 variable.AddDefinition(phi);
-                phi.Incoming = predecessorLabels.Select(t => labelToBytecode[t].Value).ToList();
-                phi.Id = id++;
+                phi.Incoming = preds.ToList();
                 var phiNode = new LinkedListNode<TacInstruction>(phi);
                 phi.Node = phiNode;
-                instructions.AddBefore(locationNode, phiNode);
+                instructions.AddAfter(locationNode, phiNode);
+                phis.Add(phi);
             }
-
-            labelToInstruction = labelToBytecode;
         }
 
-        public static void Rename(LinkedList<TacInstruction> instructions,
+        public static void Rename(ControlFlowGraph cfg,
                                   IList<Register> variables,
                                   IList<Register> newVariables,
-                                  IEnumerable<(String, String)> imDominators,
-                                  Dictionary<String, LinkedListNode<TacInstruction>> labelToInstruction,
-                                  Dictionary<BytecodeInstruction, ISet<LinkedListNode<TacInstruction>>> successors)
+                                  IEnumerable<(String, String)> imDominators)
         {
             // The key is original variables
             Dictionary<Register, int> counters = new Dictionary<Register, int>();
@@ -187,22 +215,22 @@ namespace NetSsa.Analyses
                 stacks[v] = new Stack<Register>();
             }
 
-            Dictionary<TacInstruction, ISet<LinkedListNode<TacInstruction>>> dominatorTree = GetDominatorTree(imDominators, labelToInstruction, out List<LinkedListNode<TacInstruction>> sources);
+            Dictionary<String, TacInstruction> labelToLeader = cfg.Leaders().ToDictionary(l => l.Label());
+            Dictionary<TacInstruction, ISet<LinkedListNode<TacInstruction>>> dominatorTree = GetDominatorTree(imDominators, labelToLeader, out List<LinkedListNode<TacInstruction>> sources);
 
             foreach (LinkedListNode<TacInstruction> source in sources)
             {
-                Rename(source, counters, newVariables, stacks, dominatorTree, successors);
+                RenameRecursive(cfg, source, counters, newVariables, stacks, dominatorTree);
             }
         }
 
-        private static Dictionary<TacInstruction, ISet<LinkedListNode<TacInstruction>>> GetDominatorTree(IEnumerable<(String, String)> dominators, Dictionary<String, LinkedListNode<TacInstruction>> labelToInstruction, out List<LinkedListNode<TacInstruction>> sources)
+        private static Dictionary<TacInstruction, ISet<LinkedListNode<TacInstruction>>> GetDominatorTree(IEnumerable<(String, String)> dominators, Dictionary<String, TacInstruction> labelToInstruction, out List<LinkedListNode<TacInstruction>> sources)
         {
             var result = new Dictionary<TacInstruction, ISet<LinkedListNode<TacInstruction>>>();
             sources = new List<LinkedListNode<TacInstruction>>();
-
             foreach ((String dominatedLabel, String dominatorLabel) in dominators)
             {
-                LinkedListNode<TacInstruction> dominatedNode = labelToInstruction[dominatedLabel];
+                LinkedListNode<TacInstruction> dominatedNode = labelToInstruction[dominatedLabel].Node;
 
                 // Should we rather change souffle's result?
                 if (dominatorLabel.Equals("ENTRY"))
@@ -211,7 +239,7 @@ namespace NetSsa.Analyses
                     continue;
                 }
 
-                LinkedListNode<TacInstruction> dominatorNode = labelToInstruction[dominatorLabel];
+                LinkedListNode<TacInstruction> dominatorNode = labelToInstruction[dominatorLabel].Node;
                 TacInstruction dominator = dominatorNode.Value;
 
                 if (!result.TryGetValue(dominator, out ISet<LinkedListNode<TacInstruction>> dominatedNodes))
@@ -246,18 +274,15 @@ namespace NetSsa.Analyses
             return result;
         }
 
-        private static void Rename(LinkedListNode<TacInstruction> instructionNode,
+        private static void RenameRecursive(ControlFlowGraph cfg, LinkedListNode<TacInstruction> leader,
                                 IDictionary<Register, int> counters,
                                 IList<Register> newVariables,
                                 IDictionary<Register, Stack<Register>> stacks,
-                                IDictionary<TacInstruction, ISet<LinkedListNode<TacInstruction>>> dominatorTree,
-                                IDictionary<BytecodeInstruction, ISet<LinkedListNode<TacInstruction>>> successors)
+                                IDictionary<TacInstruction, ISet<LinkedListNode<TacInstruction>>> dominatorTree)
         {
-            BytecodeInstruction instruction = (BytecodeInstruction)instructionNode.Value;
             List<Register> redefinedVariables = new List<Register>();
-
-            List<PhiInstruction> phis = GetPhiInstructions(instructionNode);
-            foreach (PhiInstruction phi in phis)
+            // Skips the label instruction, then take phis
+            foreach (TacInstruction phi in cfg.BasicBlockInstructions(leader.Value).Skip(1).TakeWhile(i => i is PhiInstruction))
             {
                 Register phiRes = (Register)phi.Result;
                 redefinedVariables.Add(phiRes);
@@ -267,33 +292,36 @@ namespace NetSsa.Analyses
                 phiNewRes.AddDefinition(phi);
             }
 
-            ReplaceOperands(instruction, stacks);
-
-            if (instruction.Result != null && instruction.Result is Register reg)
+            foreach (TacInstruction instruction in cfg.BasicBlockInstructions(leader.Value).Skip(1).SkipWhile(i => i is PhiInstruction))
             {
-                redefinedVariables.Add(reg);
-                reg.RemoveDefinition(instruction);
-                Register newRes = NewName(reg, counters, stacks, newVariables);
-                newRes.AddDefinition(instruction);
+                ReplaceOperands(instruction, stacks);
+
+                if (instruction.Result != null && instruction.Result is Register reg)
+                {
+                    redefinedVariables.Add(reg);
+                    reg.RemoveDefinition(instruction);
+                    Register newRes = NewName(reg, counters, stacks, newVariables);
+                    newRes.AddDefinition(instruction);
+                }
             }
 
-            if (successors.TryGetValue(instruction, out ISet<LinkedListNode<TacInstruction>> targets))
+            foreach (TacInstruction successor in cfg.BasicBlockSuccessors(leader.Value))
             {
-                List<PhiInstruction> successorPhis = GetSuccessorPhiInstructions(targets);
-
-                foreach (var phi in successorPhis)
+                foreach (TacInstruction successorInst in cfg.BasicBlockInstructions(successor).Skip(1).TakeWhile(i => i is PhiInstruction))
                 {
-                    int operandIndex = phi.Incoming.IndexOf(instruction);
+                    PhiInstruction phi = (PhiInstruction)successorInst;
+                    // leader
+                    int operandIndex = phi.Incoming.IndexOf(leader.Value);
                     Register variable = (Register)phi.Operands[operandIndex];
                     ReplaceOperand(phi, operandIndex, stacks[variable], true);
                 }
             }
 
-            if (dominatorTree.TryGetValue(instruction, out ISet<LinkedListNode<TacInstruction>> domSuccessors))
+            if (dominatorTree.TryGetValue(leader.Value, out ISet<LinkedListNode<TacInstruction>> domSuccessors))
             {
                 foreach (LinkedListNode<TacInstruction> successorNode in domSuccessors)
                 {
-                    Rename(successorNode, counters, newVariables, stacks, dominatorTree, successors);
+                    RenameRecursive(cfg, successorNode, counters, newVariables, stacks, dominatorTree);
                 }
             }
 
@@ -301,11 +329,6 @@ namespace NetSsa.Analyses
             {
                 stacks[v].Pop();
             }
-        }
-
-        private static List<PhiInstruction> GetSuccessorPhiInstructions(ISet<LinkedListNode<TacInstruction>> successors)
-        {
-            return successors.Select(successorNode => GetPhiInstructions(successorNode)).SelectMany(l => l).ToList();
         }
 
         public static void ReplaceOperands(TacInstruction instruction, IDictionary<Register, Stack<Register>> stacks)
@@ -329,69 +352,6 @@ namespace NetSsa.Analyses
             var newOperand = phiOperands && stack.Count == 0 ? Register.UndefinedRegister : stack.Peek();
             newOperand.AddUse(instruction, false);
             instruction.Operands[idx] = newOperand;
-        }
-
-        public static List<PhiInstruction> GetPhiInstructions(LinkedListNode<TacInstruction> instructionNode)
-        {
-            var current = instructionNode.Previous;
-            List<PhiInstruction> phiInstructions = new List<PhiInstruction>();
-            while (current != null && current.Value is PhiInstruction phi)
-            {
-                phiInstructions.Add(phi);
-                current = current.Previous;
-            }
-
-            return phiInstructions;
-        }
-
-        public static Dictionary<String, ISet<String>> Predecessors(IEnumerable<(String, String)> edges)
-        {
-            Dictionary<String, ISet<String>> result = new Dictionary<String, ISet<String>>();
-
-            foreach ((String, String) e in edges)
-            {
-                String source = e.Item1;
-                String target = e.Item2;
-
-                if (source.Equals("ENTRY"))
-                {
-                    continue;
-                }
-
-                if (!result.TryGetValue(target, out ISet<String> preds))
-                {
-                    preds = new HashSet<String>();
-                    result[target] = preds;
-                }
-
-                preds.Add(source);
-            }
-            return result;
-        }
-
-        public static Dictionary<String, LinkedListNode<TacInstruction>> LabelToBytecode(LinkedList<TacInstruction> instructions)
-        {
-            Dictionary<String, LinkedListNode<TacInstruction>> result = new Dictionary<string, LinkedListNode<TacInstruction>>();
-            LinkedListNode<TacInstruction> current = instructions.First;
-
-            while (current != null)
-            {
-                result[((BytecodeInstruction)current.Value).Label()] = current;
-                current = current.Next;
-            }
-
-            return result;
-        }
-
-        public static Dictionary<String, Register> NameToRegister(IEnumerable<Register> variables)
-        {
-            Dictionary<String, Register> result = new Dictionary<string, Register>();
-
-            foreach (Register v in variables)
-            {
-                result[v.Name] = v;
-            }
-            return result;
         }
     }
 }
