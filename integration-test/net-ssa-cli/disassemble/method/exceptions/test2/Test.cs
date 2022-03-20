@@ -3,20 +3,26 @@
 // RUN: %FileCheck %s < %t.disassemble
 
 /*
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: nop
 // CHECK: {{.*}}: s0 = ldc.i4.m1
 // CHECK: {{.*}}: l0 = stloc.0 [s0]
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: s0 = ldloc.0 [l0]
 // CHECK: {{.*}}: s1 = ldc.i4.1
 // CHECK: {{.*}}: s0 = add [s0, s1]
 // CHECK: {{.*}}: l0 = stloc.0 [s0]
 // CHECK: {{.*}}: s0 = ldarg.0 [a0]
 // CHECK: {{.*}}: s1 = ldc.i4.5
-// CHECK: {{.*}}: bne.un [[IL_0014:.*]] [s0, s1]
+// CHECK: {{.*}}: bne.un [[L_000f:.*]] [s0, s1]
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: s0 = newobj System.Void System.Exception::.ctor()
-// CHECK: {{.*}}: throw [s0]
-// CHECK: [[IL_0014]]: leave [[IL_003b:.*]]
+// CHECK: {{.*}}: throw  [s0]
+// CHECK: [[L_000f]]: label
+// CHECK: {{.*}}: leave [[L_0027:.*]]
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: nop
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: l1 = stloc.1 [e0]
 // CHECK: {{.*}}: s0 = ldloc.0 [l0]
 // CHECK: {{.*}}: s1 = ldc.i4.1
@@ -24,8 +30,10 @@
 // CHECK: {{.*}}: l0 = stloc.0 [s0]
 // CHECK: {{.*}}: s0 = ldloc.1 [l1]
 // CHECK: {{.*}}: call System.Void Test::Bar(System.Exception) [s0]
-// CHECK: {{.*}}: leave [[IL_003b]]
+// CHECK: {{.*}}: leave [[L_0027]]
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: nop
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: l2 = stloc.2 [e1]
 // CHECK: {{.*}}: s0 = ldloc.0 [l0]
 // CHECK: {{.*}}: s1 = ldc.i4.1
@@ -33,9 +41,10 @@
 // CHECK: {{.*}}: l0 = stloc.0 [s0]
 // CHECK: {{.*}}: s0 = ldloc.2 [l2]
 // CHECK: {{.*}}: call System.Void Test::Bar(System.Exception) [s0]
-// CHECK: {{.*}}: leave [[IL_003b]]
-// CHECK: [[IL_003b]]: s0 = ldloc.0 [l0]
-// CHECK: {{.*}}: ret [s0]
+// CHECK: {{.*}}: leave [[L_0027]]
+// CHECK: [[L_0027]]: label
+// CHECK: {{.*}}: s0 = ldloc.0 [l0]
+// CHECK: {{.*}}: ret  [s0]
 */
 
 using System;

@@ -52,7 +52,7 @@ namespace NetSsa.Analyses
         {
             _graph.RemoveVertex(leader);
 
-            ISet<TacInstruction> dom = new SortedSet<TacInstruction>(TacInstruction.LabelComparer);
+            ISet<TacInstruction> dom = new HashSet<TacInstruction>();
             foreach (var l in _cfg.Leaders().Except(_unreachable))
             {
                 dom.Add(l);
@@ -77,7 +77,7 @@ namespace NetSsa.Analyses
 
         private ISet<TacInstruction> FindUnreachables()
         {
-            ISet<TacInstruction> unreachable = new SortedSet<TacInstruction>(TacInstruction.LabelComparer);
+            ISet<TacInstruction> unreachable = new HashSet<TacInstruction>();
             foreach (var l in _cfg.Leaders())
             {
                 unreachable.Add(l);

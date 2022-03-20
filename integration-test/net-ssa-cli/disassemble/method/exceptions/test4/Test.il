@@ -8,7 +8,8 @@
 // CHECK: {{.*}}: ret [s0]
 // CHECK: {{.*}}: leave.s [[IL_0007:.*]]
 // CHECK: {{.*}}: endfinally
-// CHECK: [[IL_0007]]: s0 = ldarg.0 [a0]
+// CHECK: [[IL_0007]]: label
+// CHECK: {{.*}}: s0 = ldarg.0 [a0]
 // CHECK: {{.*}}: ret [s0]
 
 .assembly extern mscorlib

@@ -11,17 +11,13 @@ namespace NetSsa.Instructions
         {
             this.OpCode = bytecode.OpCode;
             this.EncodedOperand = bytecode.Operand;
-            this.Offset = bytecode.Offset;
         }
 
-        public BytecodeInstruction(OpCode opCode, Object operand, int offset)
+        public BytecodeInstruction(OpCode opCode, Object operand)
         {
             this.OpCode = opCode;
             this.EncodedOperand = operand;
-            this.Offset = offset;
         }
-
-        public int Offset;
 
         public Instruction Bytecode;
 
@@ -30,11 +26,6 @@ namespace NetSsa.Instructions
         // This is the same value that Mono.Cecil.Instruction has in its 'operand' field.
         // EncodedOperand is the value encoded in the instruction not a value consumed from the stack.
         public Object EncodedOperand;
-
-        public override string Label()
-        {
-            return "IL_" + Offset.ToString("x4");
-        }
 
         public override string ToString()
         {

@@ -62,16 +62,34 @@ namespace NetSsa.Analyses
                 bytecode.Node = node;
             }
 
+            IDictionary<TacInstruction, LabelInstruction> labels = new Dictionary<TacInstruction, LabelInstruction>();
+
             // Set targets of net-ssa control flow instructions.
-            SetControlFlowTargets(body, cecilToTac);
+            SetControlFlowTargets(body, cecilToTac, labels, bytecodes);
 
-
-            return new IRBody()
+            IRBody result = new IRBody()
             {
                 CilBody = body,
                 Instructions = bytecodes,
-                ExceptionHandlers = GetExceptionHandlers(body, cecilToTac),
+                ExceptionHandlers = GetExceptionHandlers(body, cecilToTac, labels, bytecodes),
             };
+
+            ControlFlowGraph cfg = new ControlFlowGraph(result);
+
+            // There are some leaders which are not explicit targets of a conditional branch.
+            // They must be labelized as well
+            foreach (TacInstruction leader in cfg.Leaders().Where(l => !(l is LabelInstruction)))
+            {
+                AddLabelInstruction(leader, labels, bytecodes);
+            }
+
+            uint offset = 0;
+            foreach (TacInstruction tac in result.Instructions)
+            {
+                tac.Offset = offset++;
+            }
+
+            return result;
         }
 
         private static void InsertNops(MethodBody body)
@@ -108,7 +126,7 @@ namespace NetSsa.Analyses
                 offset += instruction.GetSize();
             }
         }
-        private static void SetControlFlowTargets(MethodBody body, IDictionary<Instruction, LinkedListNode<TacInstruction>> cecilToBytecode)
+        private static void SetControlFlowTargets(MethodBody body, IDictionary<Instruction, LinkedListNode<TacInstruction>> cecilToBytecode, IDictionary<TacInstruction, LabelInstruction> labels, LinkedList<TacInstruction> bytecodes)
         {
             foreach (Mono.Cecil.Cil.Instruction cecilBytecode in body.Instructions)
             {
@@ -123,11 +141,11 @@ namespace NetSsa.Analyses
                 var operand = cecilBytecode.Operand;
                 if (operand is Instruction target)
                 {
-                    controlFlowInstruction.Targets.Add(cecilToBytecode[target].Value);
+                    controlFlowInstruction.Targets.Add(AddLabelInstruction(cecilToBytecode[target].Value, labels, bytecodes));
                 }
                 else if (operand is Instruction[] targets)
                 {
-                    controlFlowInstruction.Targets.AddRange(targets.Select(t => cecilToBytecode[t].Value));
+                    controlFlowInstruction.Targets.AddRange(targets.Select(t => AddLabelInstruction(cecilToBytecode[t].Value, labels, bytecodes)));
                 }
                 else if (operand != null)
                 {
@@ -136,18 +154,31 @@ namespace NetSsa.Analyses
             }
         }
 
-        private static List<ExceptionHandlerEntry> GetExceptionHandlers(MethodBody body, IDictionary<Mono.Cecil.Cil.Instruction, LinkedListNode<TacInstruction>> cecilToTac)
+        private static LabelInstruction AddLabelInstruction(TacInstruction addBefore, IDictionary<TacInstruction, LabelInstruction> labels, LinkedList<TacInstruction> bytecodes)
+        {
+            if (labels.TryGetValue(addBefore, out LabelInstruction foundLabel))
+            {
+                return foundLabel;
+            }
+            LabelInstruction label = new LabelInstruction();
+            label.Node = bytecodes.AddBefore(addBefore.Node, label);
+            labels[addBefore] = label;
+
+            return label;
+        }
+        private static List<ExceptionHandlerEntry> GetExceptionHandlers(MethodBody body, IDictionary<Mono.Cecil.Cil.Instruction, LinkedListNode<TacInstruction>> cecilToTac, IDictionary<TacInstruction, LabelInstruction> labels, LinkedList<TacInstruction> bytecodes)
         {
             List<ExceptionHandlerEntry> exceptionHandlers = new List<ExceptionHandlerEntry>();
             foreach (var cilExceptionHandler in body.ExceptionHandlers)
             {
                 ExceptionHandlerEntry ourExceptionHandler = new ExceptionHandlerEntry(cilExceptionHandler.HandlerType);
                 ourExceptionHandler.CatchType = cilExceptionHandler.CatchType;
-                ourExceptionHandler.FilterStart = cilExceptionHandler.FilterStart != null ? cecilToTac[cilExceptionHandler.FilterStart].Value : null;
-                ourExceptionHandler.HandlerEnd = cilExceptionHandler.HandlerEnd != null ? cecilToTac[cilExceptionHandler.HandlerEnd].Value : null;
-                ourExceptionHandler.HandlerStart = cilExceptionHandler.HandlerStart != null ? cecilToTac[cilExceptionHandler.HandlerStart].Value : null;
-                ourExceptionHandler.TryEnd = cilExceptionHandler.TryEnd != null ? cecilToTac[cilExceptionHandler.TryEnd].Value : null;
-                ourExceptionHandler.TryStart = cilExceptionHandler.TryStart != null ? cecilToTac[cilExceptionHandler.TryStart].Value : null;
+                ourExceptionHandler.FilterStart = cilExceptionHandler.FilterStart != null ? AddLabelInstruction(cecilToTac[cilExceptionHandler.FilterStart].Value, labels, bytecodes) : null;
+                ourExceptionHandler.HandlerEnd = cilExceptionHandler.HandlerEnd != null ? AddLabelInstruction(cecilToTac[cilExceptionHandler.HandlerEnd].Value, labels, bytecodes) : null;
+                ourExceptionHandler.HandlerStart = cilExceptionHandler.HandlerStart != null ? AddLabelInstruction(cecilToTac[cilExceptionHandler.HandlerStart].Value, labels, bytecodes) : null;
+                ourExceptionHandler.TryEnd = cilExceptionHandler.TryEnd != null ? AddLabelInstruction(cecilToTac[cilExceptionHandler.TryEnd].Value, labels, bytecodes) : null;
+                ourExceptionHandler.TryStart = cilExceptionHandler.TryStart != null ? AddLabelInstruction(cecilToTac[cilExceptionHandler.TryStart].Value, labels, bytecodes) : null;
+                exceptionHandlers.Add(ourExceptionHandler);
             }
 
             return exceptionHandlers;

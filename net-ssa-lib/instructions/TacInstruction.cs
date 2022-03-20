@@ -7,16 +7,15 @@ namespace NetSsa.Instructions
 {
     public abstract class TacInstruction
     {
+        public uint Offset;
         public LinkedListNode<TacInstruction> Node;
-        public abstract String Label();
+        public virtual string Label()
+        {
+            return "L_" + Offset.ToString("x4");
+        }
 
         public IList<ValueContainer> Operands = new List<ValueContainer>();
         public ValueContainer Result;
-
-        public static readonly IComparer<TacInstruction> LabelComparer = Comparer<TacInstruction>.Create((x, y) =>
-        {
-            return x.Label().CompareTo(y.Label());
-        });
     }
 
     public static class Extensions

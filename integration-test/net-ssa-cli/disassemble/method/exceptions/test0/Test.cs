@@ -2,20 +2,26 @@
 // RUN: %net-ssa-cli %T/Test.dll disassemble method "System.Int32 Test::Foo(System.Int32)" > %t.disassemble
 // RUN: %FileCheck %s < %t.disassemble
 
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: nop
 // CHECK: {{.*}}: s0 = ldc.i4.m1
 // CHECK: {{.*}}: l0 = stloc.0 [s0]
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: s0 = ldloc.0 [l0]
 // CHECK: {{.*}}: s1 = ldc.i4.1
 // CHECK: {{.*}}: s0 = add [s0, s1]
 // CHECK: {{.*}}: l0 = stloc.0 [s0]
 // CHECK: {{.*}}: s0 = ldarg.0 [a0]
 // CHECK: {{.*}}: s1 = ldc.i4.5
-// CHECK: {{.*}}: bne.un [[IL_0014:.*]] [s0, s1]
+// CHECK: {{.*}}: bne.un [[L_000f:.*]] [s0, s1]
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: s0 = newobj System.Void System.Exception::.ctor()
-// CHECK: {{.*}}: throw [s0]
-// CHECK: [[IL_0014]]: leave [[IL_002a:.*]]
+// CHECK: {{.*}}: throw  [s0]
+// CHECK: [[L_000f]]: label
+// CHECK: {{.*}}: leave [[L_001c:.*]]
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: nop
+// CHECK: {{.*}}: label
 // CHECK: {{.*}}: l1 = stloc.1 [e0]
 // CHECK: {{.*}}: s0 = ldloc.0 [l0]
 // CHECK: {{.*}}: s1 = ldc.i4.1
@@ -23,9 +29,10 @@
 // CHECK: {{.*}}: l0 = stloc.0 [s0]
 // CHECK: {{.*}}: s0 = ldloc.1 [l1]
 // CHECK: {{.*}}: call System.Void Test::Bar(System.Exception) [s0]
-// CHECK: {{.*}}: leave [[IL_002a]]
-// CHECK: [[IL_002a]]: s0 = ldloc.0 [l0]
-// CHECK: {{.*}}: ret [s0]
+// CHECK: {{.*}}: leave [[L_001c]]
+// CHECK:[[L_001c]]: label
+// CHECK: {{.*}}: s0 = ldloc.0 [l0]
+// CHECK: {{.*}}: ret  [s0]
 
 using System;
 

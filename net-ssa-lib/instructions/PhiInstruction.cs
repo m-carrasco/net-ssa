@@ -5,8 +5,6 @@ namespace NetSsa.Instructions
 {
     public class PhiInstruction : TacInstruction
     {
-        public uint Id;
-
         public List<TacInstruction> Incoming = new List<TacInstruction>();
 
         public override string ToString()
@@ -18,11 +16,6 @@ namespace NetSsa.Instructions
             }
 
             return Label() + ": " + Result.Name + " = phi [" + string.Join(",", pairs) + "]";
-        }
-
-        public override string Label()
-        {
-            return "PHI_" + Id.ToString("x4");
         }
     }
 }
