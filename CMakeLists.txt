@@ -26,12 +26,12 @@ add_subdirectory(souffle)
 
 set(NET_SSA_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin/net-ssa)
 add_custom_target(build-dotnet 
-    COMMAND ${DOTNET_COMMAND} build -o ${NET_SSA_BIN_DIR}
+    COMMAND ${CMAKE_COMMAND} -E env SOUFFLE_BIN_DIR=${SOUFFLE_BIN_DIR} ${DOTNET_COMMAND} build -o ${NET_SSA_BIN_DIR}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
 add_custom_target(check-unit-test
-    COMMAND ${DOTNET_COMMAND} test --verbosity normal
+    COMMAND ${CMAKE_COMMAND} -E env SOUFFLE_BIN_DIR=${SOUFFLE_BIN_DIR} ${DOTNET_COMMAND} test --verbosity normal
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
