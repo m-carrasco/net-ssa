@@ -31,7 +31,7 @@ add_custom_target(build-dotnet
     )
 
 add_custom_target(check-unit-test
-    COMMAND ${DOTNET_COMMAND} test --verbosity normal
+    COMMAND ${CMAKE_COMMAND} -E env SOUFFLE_BIN_DIR=${SOUFFLE_BIN_DIR} ${DOTNET_COMMAND} test --verbosity normal
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
