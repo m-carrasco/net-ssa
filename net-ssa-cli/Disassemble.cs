@@ -68,7 +68,7 @@ namespace NetSsaCli
                             bool isSsa = DisassemblyType.Ssa.Equals(type);
                             if (isSsa)
                             {
-                                Ssa.Compute(m, irBody);
+                                Ssa.Compute(irBody);
 
                             }
 
@@ -110,7 +110,7 @@ namespace NetSsaCli
                         bool isSsa = DisassemblyType.Ssa.Equals(type);
                         if (isSsa)
                         {
-                            Ssa.Compute(m, irBody);
+                            Ssa.Compute(irBody);
 
                         }
 

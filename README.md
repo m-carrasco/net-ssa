@@ -157,7 +157,7 @@ public void YourFunction(Mono.Cecil.MethodDefinition methodDefinition)
 
     IRBody irBody = Unstacker.Compute(body);
     // This call is optional.
-    Ssa.Compute(m, irBody);
+    Ssa.Compute(irBody);
 
     foreach (NetSsa.Instructions.TacInstruction ins in irBody.Instructions)
     {
