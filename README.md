@@ -1,19 +1,41 @@
+# net-ssa [![.NET](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml/badge.svg)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml) ![Nuget](https://img.shields.io/nuget/v/net-ssa-lib)
 
-# net-ssa  [![.NET](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml/badge.svg)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml)
+Microsoft's high-level programming languages, such as C#, are compiled to .NET bytecode, which is also known as CIL. The instruction set architecture of CIL operates on a stack virtual machine with local variables. CIL instruction's operands are implicit because they are elements in the stack. `net-ssa` provides a register-based intermediate representation for CIL where operands become explicit.
 
-`net-ssa-lib` is a library that provides a register-based representation for .NET bytecode. In its simplest form, each stack and local variable slot is promoted to a unique register.  Additionally, it can be transformed into SSA (Static single assignment) form using [Souffle](https://souffle-lang.github.io/), a Datalog engine. In addition, typing information is available for each register. 
- 
-Additionally, `net-ssa-cli` is a CLI application that works as a driver of the library’s main features. For instance, given a .NET *dll* or *exe*, it can disassemble it.
+Using MSIL properties, it is possible to know for every instruction which slots of the stack it consumes. Similarly, it is possible to know how many elements it pushes into the stack. `net-ssa` computes its initial representation promoting stack slots into registers. In this form, a stack slot promoted to register can be defined more than once. Local variables are accessed through store and load instructions and not assignments (similar to LLVM-IR).
 
-## Installation
+The initial register-based representation can be transformed into SSA form. SSA guarantees that every register is only defined once, and its unique definition dominates its uses. This transformation is based on dominance frontiers and partially implemented in Datalog.
+
+`net-ssa` can be either used as a library `net-ssa-lib` or as command-line application `net-ssa-cli`.
+
+If you have any questions or suggestions, feel free to open an issue to discuss it.
+
+
+## Quick setup
+It is possible to develop and test `net-ssa` without installing any dependency in your system but [Docker](https://docs.docker.com/get-docker/).
+
+1. `git clone git@github.com:m-carrasco/net-ssa.git`
+2. `cd net-ssa`
+3. `docker build -t net-ssa/net-ssa .`
+4. `docker run --name dev -v $(pwd):/net-ssa -ti net-ssa/net-ssa`
+	4a. This is now an interactive container. `$(pwd)` of the host is shared with the container as `net-ssa` source code folder.
+5. Introduce changes in the source code using your IDE as usual.
+6. Build and test in the container, execute these commands in the container terminal:
+		8. `cd build`
+		9. `make build-dotnet`
+		10. `lit integration-test/ -vvv`
+		11. `exit # once you finish working`
+7.  `docker start -i dev # to resume the container terminal`
+
+## Build from sources
 
 ### Ubuntu 20.04.3
 
-1. Read Dockerfile
-  
+1. Read [Dockerfile](https://github.com/m-carrasco/net-ssa/blob/main/Dockerfile)
+
 ### Ubuntu 18.04
 
-1. Read ./github/workflow/build.yml
+1. Read [./github/workflow/build.yml](https://github.com/m-carrasco/net-ssa/blob/main/.github/workflows/build.yml)
 
 ### Windows
 
@@ -40,35 +62,35 @@ public class Example{
 
 ```
     .method public static
-           unsigned int32 Factorial (unsigned int32 number)  cil managed 
+           unsigned int32 Factorial (unsigned int32 number)  cil managed
     {
         .maxstack 2
         .locals init (
                 unsigned int32  V_0,
                 unsigned int32  V_1)
-        IL_0000:  ldc.i4.1 
-        IL_0001:  stloc.0 
-        IL_0002:  ldc.i4.1 
-        IL_0003:  stloc.1 
+        IL_0000:  ldc.i4.1
+        IL_0001:  stloc.0
+        IL_0002:  ldc.i4.1
+        IL_0003:  stloc.1
         IL_0004:  br IL_0011
 
-        IL_0009:  ldloc.0 
-        IL_000a:  ldloc.1 
-        IL_000b:  mul 
-        IL_000c:  stloc.0 
-        IL_000d:  ldloc.1 
-        IL_000e:  ldc.i4.1 
-        IL_000f:  add 
-        IL_0010:  stloc.1 
-        IL_0011:  ldloc.1 
-        IL_0012:  ldarg.0 
+        IL_0009:  ldloc.0
+        IL_000a:  ldloc.1
+        IL_000b:  mul
+        IL_000c:  stloc.0
+        IL_000d:  ldloc.1
+        IL_000e:  ldc.i4.1
+        IL_000f:  add
+        IL_0010:  stloc.1
+        IL_0011:  ldloc.1
+        IL_0012:  ldarg.0
         IL_0013:  ble.un IL_0009
 
-        IL_0018:  ldloc.0 
-        IL_0019:  ret 
+        IL_0018:  ldloc.0
+        IL_0019:  ret
     }
 ```
-4. Finally, use ```net-ssa-cli``` to build a register-based representation of the recently built *dll*: ```net-ssa-cli Example.dll disassemble all``` 
+4. Finally, use ```net-ssa-cli``` to build a register-based representation of the recently built *dll*: ```net-ssa-cli Example.dll disassemble all```
 ```
 System.UInt32 Example::Factorial(System.UInt32)
         IL_0000: s0 = 1
@@ -76,7 +98,7 @@ System.UInt32 Example::Factorial(System.UInt32)
         IL_0002: s0 = 1
         IL_0003: l1 = s0
         IL_0004: br IL_0011
-        
+
         IL_0009: s0 = l0
         IL_000a: s1 = l1
         IL_000b: s0 = s0 * s1
@@ -88,7 +110,7 @@ System.UInt32 Example::Factorial(System.UInt32)
         IL_0011: s0 = l1
         IL_0012: s1 = a0
         IL_0013: br IL_0009 if s0 <= s1 [unsigned]
-        
+
         IL_0018: s0 = l0
         IL_0019: ret s0
 ```
@@ -98,8 +120,8 @@ System.UInt32 Example::Factorial(System.UInt32)
 // Read Mono.Cecil documentation in order to learn how to load a MethodDefinition from an assembly.
 public void YourFunction(Mono.Cecil.MethodDefinition methodDefinition)
 {
-    Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;  
-	
+    Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
+
     NetSsa.Analyses.BytecodeBody bytecodeBody = Bytecode.Compute(body);
 
     foreach (NetSsa.Instructions.BytecodeInstruction ins in bytecodeBody.Instructions)
