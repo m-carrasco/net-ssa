@@ -10,6 +10,13 @@ The initial register-based representation can be transformed into SSA form. SSA 
 
 If you have any questions or suggestions, feel free to open an issue to discuss it.
 
+### Table of Contents
+
+* [Quick setup](#quick-setup)
+* [Build from sources](#build-from-sources)
+* [Example: net-ssa-cli](#disassembling-with-net-ssa-cli)
+* [Example: net-ssa-lib](#disassembling-with-net-ssa-lib)
+
 
 ## Quick setup
 It is possible to develop and test `net-ssa` without installing any dependency in your system but [Docker](https://docs.docker.com/get-docker/).
