@@ -2,7 +2,7 @@
 
 Microsoft's high-level programming languages, such as C#, are compiled to CIL bytecode. The instruction set architecture of CIL operates on a stack virtual machine with local variables. CIL instruction's operands are implicit because they are elements in the stack. `net-ssa` provides a register-based intermediate representation for CIL where operands become explicit.
 
-Using CIL properties, it is possible to know for every instruction which slots of the stack it consumes. Similarly, it is possible to know how many elements it pushes into the stack. `net-ssa` computes its initial representation promoting stack slots into registers. In this form, a stack slot promoted to register can be defined more than once. Local variables are accessed through store and load instructions and not assignments (similar to LLVM-IR).
+Using CIL properties, it is possible to know for every instruction which slots of the stack it consumes. Similarly, it is possible to know how many elements it pushes into the stack. `net-ssa` computes its initial representation promoting stack slots into registers. In this form, a stack slot promoted to register can be defined more than once. Local variables are accessed through store and load instructions (like LLVM-IR).
 
 The initial register-based representation can be transformed into SSA form. SSA guarantees that every register is only defined once, and its unique definition dominates its uses. This transformation is based on dominance frontiers and partially implemented in Datalog.
 
@@ -16,7 +16,8 @@ If you have any questions or suggestions, feel free to open an issue to discuss 
 * [Build from sources](#build-from-sources)
 * [Example: net-ssa-cli](#disassembling-with-net-ssa-cli)
 * [Example: net-ssa-lib](#disassembling-with-net-ssa-lib)
-
+* [Contributing](#contributing)
+* [Acknowledgements](#acknowledgements)
 
 ## Quick setup
 It is possible to develop and test `net-ssa` without installing any dependency in your system but [Docker](https://docs.docker.com/get-docker/).
