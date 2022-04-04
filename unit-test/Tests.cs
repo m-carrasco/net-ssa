@@ -256,6 +256,9 @@ namespace UnitTest
             Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
 
             IRBody irBody = Unstacker.Compute(body);
+            // This call is optional.
+            Ssa.Compute(irBody);
+
             foreach (NetSsa.Instructions.TacInstruction ins in irBody.Instructions)
             {
                 Console.WriteLine(ins);

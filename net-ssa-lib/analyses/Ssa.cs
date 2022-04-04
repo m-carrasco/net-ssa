@@ -12,7 +12,7 @@ namespace NetSsa.Analyses
 {
     public class Ssa
     {
-        public static void Compute(MethodDefinition method, IRBody irBody)
+        public static void Compute(IRBody irBody)
         {
             // They don't make much sense in a register-based representation.
             ReplacePopByNop(irBody);

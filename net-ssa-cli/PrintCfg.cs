@@ -57,7 +57,7 @@ namespace NetSsaCli
 
                             if (DisassemblyType.Ssa.Equals(type))
                             {
-                                Ssa.Compute(m, irBody);
+                                Ssa.Compute(irBody);
                             }
                             ControlFlowGraph cfg = new ControlFlowGraph(irBody);
 
@@ -91,7 +91,7 @@ namespace NetSsaCli
                         bool isSsa = DisassemblyType.Ssa.Equals(type);
                         if (isSsa)
                         {
-                            Ssa.Compute(m, irBody);
+                            Ssa.Compute(irBody);
 
                         }
 
