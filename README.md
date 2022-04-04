@@ -18,13 +18,13 @@ It is possible to develop and test `net-ssa` without installing any dependency i
 2. `cd net-ssa`
 3. `docker build -t net-ssa/net-ssa .`
 4. `docker run --name dev -v $(pwd):/net-ssa -ti net-ssa/net-ssa`
-	4a. This is now an interactive container. `$(pwd)` of the host is shared with the container as `net-ssa` source code folder.
+   * This is now an interactive container. `$(pwd)` of the host is shared with the container as `net-ssa` source code folder.
 5. Introduce changes in the source code using your IDE as usual.
 6. Build and test in the container, execute these commands in the container terminal:
-		8. `cd build`
-		9. `make build-dotnet`
-		10. `lit integration-test/ -vvv`
-		11. `exit # once you finish working`
+   * `cd build`
+   * `make build-dotnet`
+   * `lit integration-test/ -vvv`
+   * `exit # once you finish working`
 7.  `docker start -i dev # to resume the container terminal`
 
 ## Build from sources
@@ -41,7 +41,9 @@ It is possible to develop and test `net-ssa` without installing any dependency i
 
 It has not been tested yet. However, it should work as long as Souffle can be installed. Souffle can run there using _Windows Subsystem for Linux_.
 
-## Usage: Disassembling with net-ssa-cli
+## Examples
+
+### Disassembling with net-ssa-cli
 
 1. Build the following code snippet:  ```mcs -target:library Example.cs```. ```msc``` is used but any C# compiler can be used.
 
@@ -90,31 +92,62 @@ public class Example{
         IL_0019:  ret
     }
 ```
-4. Finally, use ```net-ssa-cli``` to build a register-based representation of the recently built *dll*: ```net-ssa-cli Example.dll disassemble all```
+4. Use ```net-ssa-cli``` to build a register-based representation of the recently built *dll*: ```net-ssa-cli Example.dll disassemble all```
 ```
 System.UInt32 Example::Factorial(System.UInt32)
-        IL_0000: s0 = 1
-        IL_0001: l0 = s0
-        IL_0002: s0 = 1
-        IL_0003: l1 = s0
-        IL_0004: br IL_0011
-
-        IL_0009: s0 = l0
-        IL_000a: s1 = l1
-        IL_000b: s0 = s0 * s1
-        IL_000c: l0 = s0
-        IL_000d: s0 = l1
-        IL_000e: s1 = 1
-        IL_000f: s0 = s0 + s1
-        IL_0010: l1 = s0
-        IL_0011: s0 = l1
-        IL_0012: s1 = a0
-        IL_0013: br IL_0009 if s0 <= s1 [unsigned]
-
-        IL_0018: s0 = l0
-        IL_0019: ret s0
+L_0000: label
+L_0001: nop
+L_0002: s0 = ldc.i4.1
+L_0003: l0 = stloc.0 [s0]
+L_0004: s0 = ldc.i4.1
+L_0005: l1 = stloc.1 [s0]
+L_0006: br L_0010
+L_0007: label
+L_0008: s0 = ldloc.0 [l0]
+L_0009: s1 = ldloc.1 [l1]
+L_000a: s0 = mul [s0, s1]
+L_000b: l0 = stloc.0 [s0]
+L_000c: s0 = ldloc.1 [l1]
+L_000d: s1 = ldc.i4.1
+L_000e: s0 = add [s0, s1]
+L_000f: l1 = stloc.1 [s0]
+L_0010: label
+L_0011: s0 = ldloc.1 [l1]
+L_0012: s1 = ldarg.0 [a0]
+L_0013: ble.un L_0007 [s0, s1]
+L_0014: label
+L_0015: s0 = ldloc.0 [l0]
+L_0016: ret  [s0]
 ```
-## Usage: Disassembling with net-ssa-lib
+5. The previous representation is not in SSA form. Registers are defined more than once. Use ```net-ssa-cli``` to build a register-based representation in SSA form: ```net-ssa-cli Example.dll disassemble --type Ssa all```
+```
+System.UInt32 Example::Factorial(System.UInt32)
+L_0000: label
+L_0001: nop
+L_0002: s0_0 = ldc.i4.1
+L_0003: l0 = stloc.0 [s0_0]
+L_0004: s0_1 = ldc.i4.1
+L_0005: l1 = stloc.1 [s0_1]
+L_0006: br L_0010
+L_0007: label
+L_0008: s0_4 = ldloc.0 [l0]
+L_0009: s1_2 = ldloc.1 [l1]
+L_000a: s0_5 = mul [s0_4, s1_2]
+L_000b: l0 = stloc.0 [s0_5]
+L_000c: s0_6 = ldloc.1 [l1]
+L_000d: s1_3 = ldc.i4.1
+L_000e: s0_7 = add [s0_6, s1_3]
+L_000f: l1 = stloc.1 [s0_7]
+L_0010: label
+L_0011: s0_3 = ldloc.1 [l1]
+L_0012: s1_1 = ldarg.0 [a0]
+L_0013: ble.un L_0007 [s0_3, s1_1]
+L_0014: label
+L_0015: s0_8 = ldloc.0 [l0]
+L_0016: ret  [s0_8]
+```
+
+### Disassembling with net-ssa-lib
 
 ```CSharp
 // Read Mono.Cecil documentation in order to learn how to load a MethodDefinition from an assembly.
@@ -122,25 +155,20 @@ public void YourFunction(Mono.Cecil.MethodDefinition methodDefinition)
 {
     Mono.Cecil.Cil.MethodBody body = methodDefinition.Body;
 
-    NetSsa.Analyses.BytecodeBody bytecodeBody = Bytecode.Compute(body);
+    IRBody irBody = Unstacker.Compute(body);
+    // This call is optional.
+    Ssa.Compute(m, irBody);
 
-    foreach (NetSsa.Instructions.BytecodeInstruction ins in bytecodeBody.Instructions)
+    foreach (NetSsa.Instructions.TacInstruction ins in irBody.Instructions)
     {
-        Mono.Cecil.Cil.Instruction cil = ins.Bytecode;
-        Console.WriteLine("Opcode: " + cil.OpCode.Code);
-
-        foreach (NetSsa.Analyses.Variable op in ins.Operands)
-        {
-            Console.WriteLine("Operand: " + op.Name);
-        }
-
-        if (ins.Result != null)
-        {
-            Console.WriteLine("Result: " + ins.Result.Name);
-        }
+        Console.WriteLine(ins);
     }
 }
 ```
+
+This example is based on the `TestExampleDisassemble` unit test. `net-ssa-cli` can be a good starting point to understand how to call `net-ssa-lib`. 
+
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
