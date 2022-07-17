@@ -154,6 +154,36 @@ L_0014: label
 L_0015: s0_8 = ldloc.0 [l0]
 L_0016: ret  [s0_8]
 ```
+6. If SSA is enabled, it is possible to compute a basic type inference for registers:  ```net-ssa-cli Example.dll disassemble --type Ssa --type-inference all```
+```
+System.UInt32 Example::Factorial(System.UInt32)
+LocalVariable l0 ; System.UInt32
+LocalVariable l1 ; System.UInt32
+ArgumentVariable a0 ; System.UInt32
+L_0000: label
+L_0001: nop
+L_0002: s0_0 = ldc.i4.1 ; Int32
+L_0003: l0 = stloc.0 [s0_0]
+L_0004: s0_1 = ldc.i4.1 ; Int32
+L_0005: l1 = stloc.1 [s0_1]
+L_0006: br L_0010
+L_0007: label
+L_0008: s0_4 = ldloc.0 [l0] ; Int32
+L_0009: s1_2 = ldloc.1 [l1] ; Int32
+L_000a: s0_5 = mul [s0_4, s1_2] ; Int32
+L_000b: l0 = stloc.0 [s0_5]
+L_000c: s0_6 = ldloc.1 [l1] ; Int32
+L_000d: s1_3 = ldc.i4.1 ; Int32
+L_000e: s0_7 = add [s0_6, s1_3] ; Int32
+L_000f: l1 = stloc.1 [s0_7]
+L_0010: label
+L_0011: s0_3 = ldloc.1 [l1] ; Int32
+L_0012: s1_1 = ldarg.0 [a0] ; Int32
+L_0013: ble.un L_0007 [s0_3, s1_1]
+L_0014: label
+L_0015: s0_8 = ldloc.0 [l0] ; Int32
+L_0016: ret  [s0_8]
+```
 
 ### Disassembling with net-ssa-lib
 
@@ -166,10 +196,16 @@ public void YourFunction(Mono.Cecil.MethodDefinition methodDefinition)
     IRBody irBody = Unstacker.Compute(body);
     // This call is optional.
     Ssa.Compute(irBody);
+    // This analysis is optional and it requires SSA
+    StackTypeInference analysis = new StackTypeInference(irBody);
+    IDictionary<Register, StackType> stackTypes = analysis.Type();
 
     foreach (NetSsa.Instructions.TacInstruction ins in irBody.Instructions)
     {
         Console.WriteLine(ins);
+        if (ins.Result is Register register){
+            Console.WriteLine(stackTypes[register]);
+        }
     }
 }
 ```

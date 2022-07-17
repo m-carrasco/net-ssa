@@ -3,10 +3,14 @@ using NetSsa.Queries;
 using NetSsa.Facts;
 using NetSsa.Analyses;
 using NetSsa.Instructions;
+using NetSsa.Reflection;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using System;
 using System.Linq;
+using QuikGraph;
+using QuikGraph.Algorithms.Search;
+using QuikGraph.Algorithms.ConnectedComponents;
 
 namespace NetSsa.Analyses
 {
@@ -31,7 +35,15 @@ namespace NetSsa.Analyses
 
             Rename(cfg, irBody.Registers, newVariables, ssaResult.ImmediateDominator);
             irBody.Registers = newVariables;
-            RemoveUnusedPhiNodes(irBody);
+            // These undef are created because SSA doesn't take into account
+            // the liveness scope of stack slots.
+            RemoveUndefPhiNodes(irBody);
+            RemovePhiNoUses(irBody);
+            // There can still be only-phi cycles which are redundant as well
+            // and that are not catched in the previous prunning.
+            // It is easier if "undef" cases are removed first.
+            RemoveRedundantPhiCycles(irBody);
+            RemovePhiNoUses(irBody);
         }
 
         private static IEnumerable<(String, String)> RegisterDefFacts(ControlFlowGraph cfg)
@@ -61,7 +73,7 @@ namespace NetSsa.Analyses
             }
         }
 
-        private static void RemoveUnusedPhiNodes(IRBody ssaBody)
+        private static void RemoveUndefPhiNodes(IRBody ssaBody)
         {
             /*
                 This SSA generation algorithm is based on dominance frontiers.
@@ -90,45 +102,158 @@ namespace NetSsa.Analyses
 
                 Alternatively, we could compute an ssa based on live values but it is more expensive.
             */
-            var initials = ssaBody.Instructions.OfType<PhiInstruction>().Where(phi => phi.Result.Uses.Count == 0 || phi.Operands.Any(op => op.Equals(Register.UndefinedRegister)));
-            do
-            {
-                ISet<PhiInstruction> visited = new HashSet<PhiInstruction>();
-                Stack<PhiInstruction> sources = new Stack<PhiInstruction>();
 
-                foreach (PhiInstruction phi in initials)
+            // This traversal removes all uses of 'initial'
+            var initials = ssaBody.Instructions.OfType<PhiInstruction>().Where(phi => phi.Operands.Any(op => op.Equals(Register.UndefinedRegister)));
+            ISet<PhiInstruction> visited = new HashSet<PhiInstruction>();
+            Stack<PhiInstruction> sources = new Stack<PhiInstruction>();
+
+            foreach (PhiInstruction phi in initials)
+            {
+                sources.Push(phi);
+                visited.Add(phi);
+            }
+
+            while (sources.Count > 0)
+            {
+                PhiInstruction current = sources.Pop();
+                Register def = (Register)current.Result;
+                foreach (PhiInstruction phiUses in def.Uses.Cast<PhiInstruction>())
                 {
-                    sources.Push(phi);
-                    visited.Add(phi);
+                    if (!visited.Contains(phiUses))
+                    {
+                        sources.Push(phiUses);
+                        visited.Add(phiUses);
+                    }
+                }
+            }
+
+            foreach (PhiInstruction visitedPhi in visited)
+            {
+                ssaBody.Instructions.Remove(visitedPhi.Node);
+                ssaBody.Registers.Remove((Register)visitedPhi.Result);
+                foreach (ValueContainer use in visitedPhi.Operands)
+                {
+                    use.RemoveUse(visitedPhi, false);
+                }
+            }
+        }
+
+        public static void RemoveRedundantPhiCycles(IRBody ssaBody) {
+            var graph = new AdjacencyGraph<TacInstruction, Edge<TacInstruction>>();
+            foreach (PhiInstruction phi in ssaBody.Instructions.OfType<PhiInstruction>()){
+                graph.AddVertex(phi);
+
+                foreach (TacInstruction useOfPhi in phi.Result.Uses){
+                    graph.AddVertex(useOfPhi);
+                    graph.AddEdge(new Edge<TacInstruction>(useOfPhi, phi));
                 }
 
-                while (sources.Count > 0)
+                foreach (TacInstruction operand in phi.Operands.Cast<Register>().Select(op => op.Definitions.Single())){
+                    graph.AddVertex(operand);
+                    graph.AddEdge(new Edge<TacInstruction>(phi, operand));
+                }
+            }
+
+            var algorithm = new StronglyConnectedComponentsAlgorithm<TacInstruction, Edge<TacInstruction>>(graph);
+            algorithm.Compute();
+
+            var componentToInstructions = new Dictionary<int, List<TacInstruction>>();
+            foreach (var pair in algorithm.Components)
+            {
+                TacInstruction inst = pair.Key;
+                int component = pair.Value;
+
+                if (componentToInstructions.TryGetValue(component, out List<TacInstruction> insts)){
+                    insts.Add(inst);
+                } else{
+                    var l = new List<TacInstruction>();
+                    l.Add(inst);
+                    componentToInstructions[component] = l;
+                }                
+            }
+
+
+            // All phis that belong to only-phi SCC are removed as well as any other instruction
+            // that uses these phis (transitively to their uses too). If any is not a phi,
+            // an exception is thrown because it is violating the assumption that these are only
+            // redundant phi nodes.
+
+            ISet<PhiInstruction> visited = new HashSet<PhiInstruction>();
+            Stack<PhiInstruction> sources = new Stack<PhiInstruction>();
+
+            foreach (var pair in componentToInstructions){
+                int component = pair.Key;
+                List<TacInstruction> insts = pair.Value;
+                if (insts.Count > 1 && insts.All(i => i is PhiInstruction)){
+                    foreach (var i in insts.Cast<PhiInstruction>()){
+                        sources.Push(i);
+                        visited.Add(i);
+                    }
+                }
+            }
+
+            while (sources.Count > 0){
+                PhiInstruction current = sources.Pop();
+                Register def = (Register)current.Result;
+                foreach (TacInstruction use in def.Uses)
                 {
-                    PhiInstruction current = sources.Pop();
-                    Register def = (Register)current.Result;
-                    foreach (PhiInstruction phiUses in def.Uses.Cast<PhiInstruction>())
+                    PhiInstruction phiUse = use as PhiInstruction;
+
+                    if (phiUse == null){
+                        ControlFlowGraph cfg = new ControlFlowGraph(ssaBody);
+                        Console.Error.WriteLine(ControlFlowGraphExtensions.SerializeDotFile(cfg));
+
+                        Console.Error.WriteLine(current);
+                        Console.Error.WriteLine(use);
+                        throw new Exception();
+                    }
+                    if (!visited.Contains(phiUse))
                     {
-                        if (!visited.Contains(phiUses))
-                        {
-                            sources.Push(phiUses);
-                            visited.Add(phiUses);
+                        sources.Push(phiUse);
+                        visited.Add(phiUse);
+                    }
+                }
+
+                ssaBody.Instructions.Remove(current.Node);
+                ssaBody.Registers.Remove((Register)current.Result);
+                foreach (ValueContainer use in current.Operands)
+                {
+                    use.RemoveUse(current, false);
+                }
+            }
+        }
+
+        // This function won't work if there are "undefined" uses.
+        // Don't worry if you call it on a IRBody returned by the Ssa class.
+        public static void RemovePhiNoUses(IRBody ssaBody){
+            ISet<PhiInstruction> visited = new HashSet<PhiInstruction>();
+            Stack<PhiInstruction> sources = new Stack<PhiInstruction>();
+
+            foreach (PhiInstruction phi in ssaBody.Instructions.OfType<PhiInstruction>().Where(phi => phi.Result.Uses.Count == 0 || (phi.Result.Uses.ToHashSet().Count == 1 && phi.Result.Uses.ToHashSet().Single().Equals(phi)))){
+                visited.Add(phi);
+                sources.Push(phi);
+            }
+
+            while (sources.Count > 0){
+                PhiInstruction current = sources.Pop();
+                Register def = (Register)current.Result;
+                
+                ssaBody.Registers.Remove(def);
+                ssaBody.Instructions.Remove(current.Node);
+                foreach (ValueContainer use in current.Operands)
+                {
+                    use.RemoveUse(current, false);
+
+                    if (use.Uses.Count == 0 || (use.Uses.ToHashSet().Count == 1 && use.Uses.ToHashSet().Single().Equals(use))){
+                        PhiInstruction opInst = ((Register)use).Definitions.Single() as PhiInstruction;
+                        if (opInst != null && !visited.Contains(opInst)){
+                            visited.Add(opInst);
+                            sources.Push(opInst);
                         }
                     }
                 }
-
-                foreach (PhiInstruction visitedPhi in visited)
-                {
-                    ssaBody.Instructions.Remove(visitedPhi.Node);
-                    ssaBody.Registers.Remove((Register)visitedPhi.Result);
-                    foreach (ValueContainer use in visitedPhi.Operands)
-                    {
-                        use.RemoveUse(visitedPhi, false);
-                    }
-                }
-
-                // There can be a phi node that now is no longer used.
-                initials = ssaBody.Instructions.OfType<PhiInstruction>().Where(phi => phi.Result.Uses.Count == 0);
-            } while (initials.Count() > 0);
+            }
         }
 
         private static void ReplacePopByNop(IRBody body)

@@ -258,10 +258,16 @@ namespace UnitTest
             IRBody irBody = Unstacker.Compute(body);
             // This call is optional.
             Ssa.Compute(irBody);
+            // This analysis is optional and it requires SSA
+            StackTypeInference analysis = new StackTypeInference(irBody);
+            IDictionary<Register, StackType> stackTypes = analysis.Type();
 
             foreach (NetSsa.Instructions.TacInstruction ins in irBody.Instructions)
             {
                 Console.WriteLine(ins);
+                if (ins.Result is Register register){
+                    Console.WriteLine(stackTypes[register]);
+                }
             }
         }
     }
