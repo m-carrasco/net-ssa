@@ -19,8 +19,6 @@ namespace NetSsa.Instructions
             this.EncodedOperand = operand;
         }
 
-        public Instruction Bytecode;
-
         public OpCode OpCode;
 
         // This is the same value that Mono.Cecil.Instruction has in its 'operand' field.

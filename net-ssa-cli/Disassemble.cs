@@ -35,19 +35,25 @@ namespace NetSsaCli
                 description: "Perform SSA correctness checks (one assignment, etc.).");
             disassemble.AddOption(verifySsa);
 
+            var typeInference = new Option<bool>(
+                "--type-inference",
+                getDefaultValue: () => false,
+                description: "Type each SSA register according to stack types. Only valid if disassembling is SSA.");
+            disassemble.AddOption(typeInference);
+
             var method = new Command("method");
             method.AddArgument(new Argument<String>("method", "Method to disassemble."));
-            method.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool, String>(PrintDisassemble);
+            method.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool, bool, String>(PrintDisassemble);
             disassemble.AddCommand(method);
 
             var all = new Command("all", "All methods in the assembly are disassembled.");
-            all.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool>(PrintDisassemble);
+            all.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool, bool>(PrintDisassemble);
             disassemble.AddCommand(all);
 
             rootCommand.Add(disassemble);
         }
 
-        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa, String method)
+        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa, bool typeInference, String method)
         {
             using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(input.FullName))
             {
@@ -57,29 +63,14 @@ namespace NetSsaCli
                     {
                         if (m.FullName.Equals(method))
                         {
+                            Console.WriteLine(m.FullName);
                             if (!m.HasBody)
                             {
                                 Console.WriteLine("Method has no body.");
                                 return;
                             }
 
-                            IRBody irBody = Unstacker.Compute(m.Body);
-
-                            bool isSsa = DisassemblyType.Ssa.Equals(type);
-                            if (isSsa)
-                            {
-                                Ssa.Compute(irBody);
-
-                            }
-
-                            Console.WriteLine(m.FullName);
-                            Console.WriteLine(String.Join(System.Environment.NewLine, irBody.Instructions.Select(t => t.ToString())));
-
-                            if (isSsa && verifySsa)
-                            {
-                                SsaVerifier ssaVerifier = new SsaVerifier(irBody);
-                                ssaVerifier.Verify();
-                            }
+                            PrintDisassemble(m, type, verifySsa, typeInference);
 
                             return;
                         }
@@ -89,8 +80,44 @@ namespace NetSsaCli
                 Console.WriteLine("No method found.");
             }
         }
+        
+        static void PrintDisassemble(MethodDefinition m, DisassemblyType type, bool verifySsa, bool typeInference){
+            IRBody irBody = Unstacker.Compute(m.Body);
+            bool isSsa = DisassemblyType.Ssa.Equals(type);
 
-        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa)
+            IDictionary<Register, StackType> stackTypes = null;
+            if (isSsa)
+            {
+                Ssa.Compute(irBody);
+                if (typeInference){
+                    StackTypeInference analysis = new StackTypeInference(irBody);
+                    stackTypes = analysis.Type();
+                }
+            }
+
+            var lines = irBody.Instructions.Select(t => {
+                String r = t.ToString();
+                if (stackTypes != null && t.Result is Register register){
+                    r = r + " ; " + stackTypes[register];
+                }
+                return r;
+            });
+
+            var variablesLines = irBody.MemoryVariables.Select(mv => {
+                return mv.Kind.ToString() + " " + mv.Name + " ; " + mv.Type.FullName;
+            });
+
+            Console.WriteLine(String.Join(System.Environment.NewLine, variablesLines));
+            Console.WriteLine(String.Join(System.Environment.NewLine, lines));
+
+            if (isSsa && verifySsa)
+            {
+                SsaVerifier ssaVerifier = new SsaVerifier(irBody);
+                ssaVerifier.Verify();
+            }
+        }
+
+        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa, bool typeInference)
         {
             using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(input.FullName))
             {
@@ -105,22 +132,7 @@ namespace NetSsaCli
                             continue;
                         }
 
-                        IRBody irBody = Unstacker.Compute(m.Body);
-
-                        bool isSsa = DisassemblyType.Ssa.Equals(type);
-                        if (isSsa)
-                        {
-                            Ssa.Compute(irBody);
-
-                        }
-
-                        Console.WriteLine(String.Join(System.Environment.NewLine, irBody.Instructions.Select(t => t.ToString())));
-
-                        if (isSsa && verifySsa)
-                        {
-                            SsaVerifier ssaVerifier = new SsaVerifier(irBody);
-                            ssaVerifier.Verify();
-                        }
+                        PrintDisassemble(m, type, verifySsa, typeInference);
                     }
                 }
             }

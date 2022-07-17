@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using NetSsa.Instructions;
+using Mono.Cecil;
 
 namespace NetSsa.Analyses
 {
     public enum MemoryVariableKind
     {
-        Local,
-        Argument,
-        Exception
+        LocalVariable,
+        ArgumentVariable,
     }
 
     public class MemoryVariable : ValueContainer
@@ -16,10 +16,12 @@ namespace NetSsa.Analyses
         public static readonly String LocalVariablePrefix = "l";
         public static readonly String ArgumentVariablePrefix = "a";
         public MemoryVariableKind Kind;
+        public TypeReference Type;
 
-        public MemoryVariable(string name, MemoryVariableKind k) : base(name)
+        public MemoryVariable(string name, TypeReference t, MemoryVariableKind k) : base(name)
         {
             this.Kind = k;
+            this.Type = t;
         }
 
         public override string ToString()

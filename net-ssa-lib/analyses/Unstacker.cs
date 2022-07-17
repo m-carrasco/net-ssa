@@ -28,18 +28,19 @@ namespace NetSsa.Analyses
 
             for (uint index = 0; index < body.Variables.Count; index++)
             {
-                irBody.MemoryLocalVariables.Add(new MemoryVariable(MemoryVariable.LocalVariablePrefix + index, MemoryVariableKind.Local));
+                irBody.MemoryLocalVariables.Add(new MemoryVariable(MemoryVariable.LocalVariablePrefix + index, body.Variables[(int)index].VariableType, MemoryVariableKind.LocalVariable));
             }
 
             if (body.Method.HasThis)
             {
-                irBody.MemoryArgumentVariables.Add(new MemoryVariable(MemoryVariable.ArgumentVariablePrefix + "0", MemoryVariableKind.Argument));
+                irBody.MemoryArgumentVariables.Add(new MemoryVariable(MemoryVariable.ArgumentVariablePrefix + "0", body.Method.DeclaringType, MemoryVariableKind.ArgumentVariable));
             }
 
             int offset = body.Method.HasThis ? 1 : 0;
             for (uint index = 0; index < body.Method.Parameters.Count; index++)
             {
-                irBody.MemoryArgumentVariables.Add(new MemoryVariable(MemoryVariable.ArgumentVariablePrefix + (index + offset), MemoryVariableKind.Argument));
+                var type = body.Method.Parameters[(int)index].ParameterType;
+                irBody.MemoryArgumentVariables.Add(new MemoryVariable(MemoryVariable.ArgumentVariablePrefix + (index + offset), type, MemoryVariableKind.ArgumentVariable));
             }
 
             foreach (var kv in stack_sizes)
