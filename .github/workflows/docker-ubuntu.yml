@@ -18,4 +18,6 @@ jobs:
       - name: Checkout LFS objects
         run: git lfs checkout
       - name: Build the Docker image
+        # On purpose Souffle programs aren't compiled from scratch.
+        # This is helpful if we forget to update the ones shipped in the repository.
         run: cd $GITHUB_WORKSPACE && docker build . --file Dockerfile --tag net-ssa:net-ssa

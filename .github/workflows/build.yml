@@ -7,22 +7,6 @@ on:
     branches: [ main ]
 
 jobs:
-  check-binaries:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          lfs: true
-      - name: Checkout LFS objects
-        run: git lfs checkout
-      - name: Check that the current binaries are equal to the fresh ones
-        run: |
-          cd $GITHUB_WORKSPACE/souffle/bin && find . -type f | xargs -I {} sha256sum {} > ../sha256sum.current.log
-          cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
-          cd $GITHUB_WORKSPACE/souffle/bin && find . -type f | xargs -I {} sha256sum {} > ../sha256sum.new.log
-          cd $GITHUB_WORKSPACE/souffle && cat sha256sum.current.log && cat sha256sum.new.log && diff sha256sum.current.log sha256sum.new.log
-
   build:
     needs: check-binaries
     runs-on: ubuntu-20.04
@@ -58,7 +42,10 @@ jobs:
         chmod +x ci/install-lit.sh && ci/install-lit.sh
         chmod +x ci/install-llvm.sh && ci/install-llvm.sh
         chmod +x ci/install-mono.sh && ci/install-mono.sh
-    - name: Build
+    - name: Build Souffle programs from scratch
+      run: |
+        cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
+    - name: Build dotnet
       run: |
         dotnet build
         dotnet test --verbosity normal
