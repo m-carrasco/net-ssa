@@ -7,6 +7,30 @@ on:
     branches: [ main ]
 
 jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.9
+      with:
+        cmake-version: '3.21.x'
+    - name: Build dotnet
+      run: |
+        dotnet build
+        dotnet test --verbosity normal
+        
   build-windows:
     runs-on: windows-latest
     steps:
