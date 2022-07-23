@@ -38,9 +38,9 @@ jobs:
         cmake-version: '3.21.x'
     - name: Setup dependencies
       run: |
-        sudo chmod +x ci/install-lit.sh && ci/install-lit.sh
-        sudo chmod +x ci/install-llvm.sh && ci/install-llvm.sh
-        sudo chmod +x ci/install-mono.sh && ci/install-mono.sh
+        chmod +x ci/install-lit.sh && ./ci/install-lit.sh
+        chmod +x ci/install-llvm.sh && ./ci/install-llvm.sh
+        chmod +x ci/install-mono.sh && ./ci/install-mono.sh
     - name: Build Souffle programs from scratch
       run: |
         cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
