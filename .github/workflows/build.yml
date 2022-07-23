@@ -14,7 +14,7 @@ jobs:
       - name: Check that the current binaries are equal to the fresh ones
         run: |
           cd $GITHUB_WORKSPACE/souffle/bin && find . -type f | xargs -I {} sha256sum {} > ../sha256sum.current.log
-          cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./souffle/build-all-with-docker.sh
+          cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
           cd $GITHUB_WORKSPACE/souffle/bin && find . -type f | xargs -I {} sha256sum {} > ../sha256sum.new.log
           cd $GITHUB_WORKSPACE/souffle && cmp sha256sum.current.log sha256sum.new.log
 
