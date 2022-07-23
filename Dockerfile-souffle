@@ -1,0 +1,11 @@
+FROM ubuntu:20.04
+
+COPY . /net-ssa
+
+RUN apt-get update && apt-get install -y wget && \
+    chmod +x /net-ssa/ci/install-souffle.sh && /net-ssa/ci/install-souffle.sh && \
+    chmod +x /net-ssa/ci/install-mingw32.sh && /net-ssa/ci/install-mingw32.sh && \
+    cd /net-ssa/souffle && CXX=g++ ./build-souffle-linux-x86-64.sh && \
+    # Copy Souffle's headers for mingw32
+    cp -r /usr/include/souffle/ /usr/x86_64-w64-mingw32/include/souffle/ && \
+    cd /net-ssa/souffle && CXX=x86_64-w64-mingw32-g++-posix ./build-souffle-windows-x86-64.sh

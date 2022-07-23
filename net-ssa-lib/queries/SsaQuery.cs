@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using NetSsa.IO;
 
 namespace NetSsa.Queries
@@ -15,8 +16,23 @@ namespace NetSsa.Queries
         public static readonly String SsaQueryBinPath = GetSsaQueryBinPath();
         public static String GetSsaQueryBinPath()
         {
+            String suffix = String.Empty;
+            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)){
+                suffix = "-linux-x86-64";
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)){
+                suffix = "-windows-x86-64.exe";
+            } else{
+                throw new NotImplementedException("Unsupported Operating System");
+            }
+
+            // This may need to change for OSX...
+            if (RuntimeInformation.OSArchitecture != Architecture.X64){
+                throw new NotImplementedException("Unsupported Architecture: " + RuntimeInformation.OSArchitecture);
+            }
+
             string directory = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
-            string result = Path.Combine(directory, "ssa-query");
+            string result = Path.Combine(directory, "ssa-query" + suffix);
             if (!File.Exists(result))
             {
                 throw new FileNotFoundException(result);

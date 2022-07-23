@@ -1,4 +1,4 @@
-name: .NET
+name: .NET (Linux fast)
 
 on:
   push:
@@ -7,10 +7,20 @@ on:
     branches: [ main ]
 
 jobs:
+  check-binaries:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check that the current binaries are equal to the fresh ones
+        run: |
+          cd $GITHUB_WORKSPACE/souffle/bin && find . -type f | xargs -I {} sha256sum {} > ../sha256sum.current.log
+          cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./souffle/build-all-with-docker.sh
+          cd $GITHUB_WORKSPACE/souffle/bin && find . -type f | xargs -I {} sha256sum {} > ../sha256sum.new.log
+          cd $GITHUB_WORKSPACE/souffle && cmp sha256sum.current.log sha256sum.new.log
+
   build:
-
-    runs-on: ubuntu-18.04
-
+    needs: check-binaries
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
       with:
@@ -27,18 +37,6 @@ jobs:
           configFilePath: ${{ github.workspace }}/.github/GitVersion.yml
     - name: Setup Python
       uses: actions/setup-python@v2.2.2
-    - name: Setup mono
-      run: |
-        sudo apt install gnupg ca-certificates
-        sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-        echo "deb https://download.mono-project.com/repo/ubuntu stable-bionic/snapshots/6.12.0.182 main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-        sudo apt update
-        sudo apt-get install -y mono-devel mono-utils
-    - name: Setup llvm-config and FileCheck
-      run: |
-        sudo apt-get install llvm-10 llvm-10-tools
-        sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
-        llvm-config --version
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
@@ -47,29 +45,20 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.9
       with:
         cmake-version: '3.21.x'
-    - name: Setup Souffle
+    - name: Setup dependencies
       run: |
-        curl -LJO https://github.com/souffle-lang/souffle/releases/download/2.0.2/souffle_2.0.2-1_amd64.deb
-        sudo apt-get update
-        sudo apt-get install mcpp
-        sudo dpkg -i souffle_2.0.2-1_amd64.deb
-    - name: Setup LIT
+        chmod +x ci/install-lit.sh && ci/install-lit.sh
+        chmod +x ci/install-llvm.sh && ci/install-llvm.sh
+        chmod +x ci/install-mono.sh && ci/install-mono.sh
+    - name: Build
       run: |
-        pip install lit
-    - name: Configure
+        dotnet build
+        dotnet test --verbosity normal
+    - name: Configure LIT test cases
       run: |
         mkdir build
         cd build 
         cmake .. 
-    - name: Build
-      run: |
-        cd build
-        make build-souffle
-        make build-dotnet
-    - name: Unit test
-      run: |
-        cd build
-        make check-unit-test
     - name: Integration test
       run: |
         cd build
@@ -77,5 +66,5 @@ jobs:
     - name: Generate nuget packages
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       run: |
-        SOUFFLE_BIN_DIR=$(pwd)/build/bin/souffle dotnet pack net-ssa.sln -o:build/bin/net-ssa/package --include-symbols --include-source /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }} /p:PackageVersion=${{ steps.gitversion.outputs.AssemblySemVer }}
+        dotnet pack net-ssa.sln -o:build/bin/net-ssa/package --include-symbols --include-source /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }} /p:PackageVersion=${{ steps.gitversion.outputs.AssemblySemVer }}
         dotnet nuget push build/bin/net-ssa/package/net-ssa-lib.${{ steps.gitversion.outputs.NuGetVersionV2 }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
