@@ -26,8 +26,15 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.9
       with:
         cmake-version: '3.21.x'
-    - name:
+    - name: Install Souffle
       run: brew install --HEAD souffle-lang/souffle/souffle
+    - name: Build Souffle program
+      run: |
+        cd souffle
+        include_dir=$parent_path/src
+        souffle --generate=source.cpp --include-dir=souffle/src src/ssa-query.dl
+        mkdir -p $output_dir
+        $CXX -O3 --std=c++17 -static -o test.out source.cpp 
     - name: Build dotnet
       run: |
         dotnet build
