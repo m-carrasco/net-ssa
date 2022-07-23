@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          lfs: true
+      - name: Checkout LFS objects
+        run: git lfs checkout
       - name: Check that the current binaries are equal to the fresh ones
         run: |
           cd $GITHUB_WORKSPACE/souffle/bin && find . -type f | xargs -I {} sha256sum {} > ../sha256sum.current.log
@@ -25,6 +30,9 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v0.9.7
       with:
