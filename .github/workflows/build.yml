@@ -1,4 +1,4 @@
-name: .NET (Linux)
+name: .NET (build, test and release all platforms)
 
 on:
   push:
@@ -108,13 +108,9 @@ jobs:
       run: |
         cd build
         lit integration-test -v
-    - name: Generate nuget packages
-      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      run: |
-        dotnet pack net-ssa.sln -o:build/bin/net-ssa/package --include-symbols --include-source /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }} /p:PackageVersion=${{ steps.gitversion.outputs.AssemblySemVer }}
-        dotnet nuget push build/bin/net-ssa/package/net-ssa-lib.${{ steps.gitversion.outputs.NuGetVersionV2 }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
   release:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [build-macos, build-windows, build-linux]
     runs-on: ubuntu-20.04
     steps:
@@ -150,11 +146,9 @@ jobs:
         path: ${{ github.workspace }}/souffle/bin/macos-x86-64-arm64/
     - name: Build dotnet
       run: |
-        echo $(ls $GITHUB_WORKSPACE/souffle/bin/macos-x86-64-arm64/)
-        echo $(file $GITHUB_WORKSPACE/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64)
         dotnet build
+        dotnet test --verbosity normal
     - name: Generate nuget packages
-      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       run: |
         dotnet pack net-ssa.sln -o:build/bin/net-ssa/package --include-symbols --include-source /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }} /p:PackageVersion=${{ steps.gitversion.outputs.AssemblySemVer }}
         dotnet nuget push build/bin/net-ssa/package/net-ssa-lib.${{ steps.gitversion.outputs.NuGetVersionV2 }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
