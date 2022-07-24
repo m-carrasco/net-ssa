@@ -147,10 +147,11 @@ jobs:
       uses: actions/download-artifact@master
       with:
         name: ssa-query-macos-x86-64-arm64
-        path: ${{ github.workspace }}/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64
+        path: ${{ github.workspace }}/souffle/bin/macos-x86-64-arm64/
     - name: Build dotnet
       run: |
-        echo $(ls $GITHUB_WORKSPACE/souffle/bin/)
+        echo $(ls $GITHUB_WORKSPACE/souffle/bin/macos-x86-64-arm64/)
+        echo $(file $GITHUB_WORKSPACE/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64)
         dotnet build
     - name: Generate nuget packages
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
