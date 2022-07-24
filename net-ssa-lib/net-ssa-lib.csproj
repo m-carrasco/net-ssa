@@ -23,6 +23,12 @@
         <Pack>true</Pack>
         <PackageCopyToOutput>true</PackageCopyToOutput>
     </Content>
+    </Content>
+        <Content Include="../souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <Pack>true</Pack>
+        <PackageCopyToOutput>true</PackageCopyToOutput>
+    </Content>
   </ItemGroup>
 
 </Project>
