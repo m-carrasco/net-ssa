@@ -35,7 +35,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: ssa-query-macos-x86-64-arm64
-        path: $GITHUB_WORKSPACE/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64
+        path: ${{ github.workspace }}/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64
         retention-days: 1
 
   build-windows:
@@ -147,7 +147,7 @@ jobs:
       uses: actions/download-artifact@master
       with:
         name: ssa-query-macos-x86-64-arm64
-        path: $GITHUB_WORKSPACE/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64
+        path: ${{ github.workspace }}/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64
     - name: Build dotnet
       run: |
         echo $(ls $GITHUB_WORKSPACE/souffle/bin/)
