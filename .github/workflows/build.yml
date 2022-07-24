@@ -31,6 +31,12 @@ jobs:
       run: |
         dotnet build
         dotnet test --verbosity normal
+    - name: Upload ssa-query-macos-x86-64-arm64
+      uses: actions/upload-artifact@v3
+      with:
+        name: ssa-query-macos-x86-64-arm64
+        path: $GITHUB_WORKSPACE/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64
+        retention-days: 1
 
   build-windows:
     runs-on: windows-latest
@@ -102,6 +108,50 @@ jobs:
       run: |
         cd build
         lit integration-test -v
+    - name: Generate nuget packages
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      run: |
+        dotnet pack net-ssa.sln -o:build/bin/net-ssa/package --include-symbols --include-source /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }} /p:PackageVersion=${{ steps.gitversion.outputs.AssemblySemVer }}
+        dotnet nuget push build/bin/net-ssa/package/net-ssa-lib.${{ steps.gitversion.outputs.NuGetVersionV2 }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+
+  release:
+    needs: [build-macos, build-windows, build-linux]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0.9.7
+      with:
+        versionSpec: '5.x'
+    - name: Calculate version
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0.9.7
+      with:
+          useConfigFile: true
+          configFilePath: ${{ github.workspace }}/.github/GitVersion.yml
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+    - name: Build Souffle programs from scratch
+      run: |
+        cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
+    - name: Fetch macos binary
+      uses: actions/download-artifact@master
+      with:
+        name: ssa-query-macos-x86-64-arm64
+        path: $GITHUB_WORKSPACE/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64
+    - name: Build dotnet
+      run: |
+        echo $(ls $GITHUB_WORKSPACE/souffle/bin/)
+        dotnet build
     - name: Generate nuget packages
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       run: |

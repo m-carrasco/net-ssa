@@ -20,4 +20,5 @@ echo $(souffle --version)
 souffle --generate=$cpp_file --include-dir=$include_dir $souffle_file
 mkdir -p $output_dir
 $CXX -O3 --std=c++17 -arch x86_64 -arch arm64 -mmacosx-version-min=11.0 -o $output_bin $cpp_file
+echo $(file $output_bin)
 echo "Done"
