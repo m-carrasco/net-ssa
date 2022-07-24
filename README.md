@@ -57,16 +57,16 @@ The Dockerfile executes the shell scripts under the [ci](https://github.com/m-ca
 ### Windows and MacOS
 
 The steps are the same as in Ubuntu. The project building and unit testing is done in the CI. Yet, the integration tests aren't configured.
-Anyway, the dependencies should be the same as in Ubuntu.
+Anyway, the dependencies should be the same as in Ubuntu. If you encounter any problem while trying this, please open an issue.
 
-## Build native dependencies (optional - only if needed)
+## Build native dependencies 
 
-`net-ssa` has native dependencies, which are shipped in the project already. You shouldn't need to build them. The supported systems are:
+`net-ssa` has native dependencies, which are shipped in the project already. You shouldn't need to build them. Usually, this is only required for development. The supported systems are:
 * Linux - x86-64
 * Windows - x86-64
 * MacOS - x86-64 and arm64
 
-In case they must be re-built, `./net-ssa/souffle/build-all-with-docker.sh` is available. The script compiles these dependencies from scratch using the source code in your repository. Under the hood, the script isolates this process using Docker. This only builds the Linux and Windows dependencies. Cross-compilation for MacOS is incredible difficult. If you are a MacOS user, check the CI to figure out the required dependencies and execute `build-souffle-macos-x86-64-arm64.sh`.
+In case they must be re-built, [`./net-ssa/souffle/build-all-with-docker.sh`](https://github.com/m-carrasco/net-ssa/blob/main/souffle/build-all-with-docker.sh) is available. The script compiles these dependencies from scratch using the source code in your repository. Under the hood, the script isolates this process using Docker. This only builds the Linux and Windows dependencies. Cross-compilation for MacOS is incredible difficult. If you are a MacOS user, check the CI to figure out the required dependencies and execute `build-souffle-macos-x86-64-arm64.sh`.
 
 ## Examples
 
