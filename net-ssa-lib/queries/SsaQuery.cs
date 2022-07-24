@@ -14,23 +14,40 @@ namespace NetSsa.Queries
     public class SsaQuery
     {
         public static readonly String SsaQueryBinPath = GetSsaQueryBinPath();
-        public static String GetSsaQueryBinPath()
-        {
-            String suffix = String.Empty;
-            
+
+        private static String GetTargetSuffix(){
+            OSPlatform platform;
+            String suffix;
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)){
+                platform = OSPlatform.Linux;
                 suffix = "-linux-x86-64";
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)){
+                platform = OSPlatform.Windows;
                 suffix = "-windows-x86-64.exe";
-            } else{
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)){
+                platform = OSPlatform.OSX;
+                suffix = "macos-x86-64-arm64";
+            } else {
                 throw new NotImplementedException("Unsupported Operating System");
             }
-
-            // This may need to change for OSX...
-            if (RuntimeInformation.OSArchitecture != Architecture.X64){
-                throw new NotImplementedException("Unsupported Architecture: " + RuntimeInformation.OSArchitecture);
+        
+            if (platform.Equals(OSPlatform.Linux) || platform.Equals(OSPlatform.Windows)){
+                if (RuntimeInformation.OSArchitecture != Architecture.X64){
+                    throw new NotImplementedException("Unsupported Architecture: " + RuntimeInformation.OSArchitecture);
+                }
+            } else if (platform.Equals(OSPlatform.OSX)){
+                if (RuntimeInformation.OSArchitecture != Architecture.X64 && RuntimeInformation.OSArchitecture != Architecture.Arm64){
+                    throw new NotImplementedException("Unsupported Architecture: " + RuntimeInformation.OSArchitecture);
+                }
             }
 
+            return suffix;
+        }
+
+        public static String GetSsaQueryBinPath()
+        {
+            String suffix = GetTargetSuffix();
             string directory = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
             string result = Path.Combine(directory, "ssa-query" + suffix);
             if (!File.Exists(result))
