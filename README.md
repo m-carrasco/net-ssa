@@ -1,4 +1,4 @@
-# net-ssa [![.NET](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml/badge.svg)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml) ![Nuget](https://img.shields.io/nuget/v/net-ssa-lib)
+# net-ssa [![.NET (build, test and release if necessary)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml/badge.svg?branch=main&event=push)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml) [![Docker image](https://github.com/m-carrasco/net-ssa/actions/workflows/docker-ubuntu.yml/badge.svg?branch=main&event=push)](https://github.com/m-carrasco/net-ssa/actions/workflows/docker-ubuntu.yml) ![Nuget](https://img.shields.io/nuget/v/net-ssa-lib)
 
 Microsoft's high-level programming languages, such as C#, are compiled to CIL bytecode. The instruction set architecture of CIL operates on a stack virtual machine with local variables. CIL instruction's operands are implicit because they are elements in the stack. `net-ssa` provides a register-based intermediate representation for CIL where operands become explicit.
 
