@@ -32,6 +32,9 @@ jobs:
         dotnet build
         dotnet test --verbosity normal
     - name: Upload ssa-query-macos-x86-64-arm64
+      # only do it when it hits the default branch 
+      # this artifact is consumed by the release job
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       uses: actions/upload-artifact@v3
       with:
         name: ssa-query-macos-x86-64-arm64
