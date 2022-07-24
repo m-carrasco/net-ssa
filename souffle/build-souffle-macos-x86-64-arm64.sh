@@ -19,7 +19,7 @@ echo $(souffle --version)
 
 souffle --generate=$cpp_file --include-dir=$include_dir $souffle_file
 mkdir -p $output_dir
-$CXX -O3 --std=c++17 -static -target x86_64-apple-darwin-macho -target arm64-apple-darwin -o $output_bin.both $cpp_file
-$CXX -O3 --std=c++17 -static -target arm64-apple-darwin -o $output_bin.arm64 $cpp_file 
-$CXX -O3 --std=c++17 -static -target x86_64-apple-darwin-macho -o $output_bin.x86_64 $cpp_file
+$CXX -O3 --std=c++17 -target x86_64-apple-darwin-macho -target arm64-apple-darwin -o $output_bin.both $cpp_file
+$CXX -O3 --std=c++17 -target arm64-apple-darwin -o $output_bin.arm64 $cpp_file 
+$CXX -O3 --std=c++17 -target x86_64-apple-darwin-macho -o $output_bin.x86_64 $cpp_file
 echo "Done"

@@ -27,7 +27,7 @@ jobs:
       with:
         cmake-version: '3.21.x'
     - name: Install Souffle
-      run: clang++ --version && brew install --HEAD souffle-lang/souffle/souffle
+      run: brew install --HEAD souffle-lang/souffle/souffle
     - name: Build Souffle program
       run: |
         cd $GITHUB_WORKSPACE/souffle && CXX=clang++ ./build-souffle-macos-x86-64-arm64.sh
