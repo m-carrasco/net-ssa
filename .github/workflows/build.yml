@@ -1,4 +1,4 @@
-name: .NET (build, test and release all platforms)
+name: .NET (build, test and release if necessary)
 
 on:
   push:
