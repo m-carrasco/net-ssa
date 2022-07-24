@@ -1,4 +1,4 @@
-# net-ssa [![.NET](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml/badge.svg)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml) ![Nuget](https://img.shields.io/nuget/v/net-ssa-lib)
+# net-ssa [![.NET (build, test and release if necessary)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml/badge.svg?branch=main&event=push)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml) [![Docker image](https://github.com/m-carrasco/net-ssa/actions/workflows/docker-ubuntu.yml/badge.svg?branch=main&event=push)](https://github.com/m-carrasco/net-ssa/actions/workflows/docker-ubuntu.yml) ![Nuget](https://img.shields.io/nuget/v/net-ssa-lib)
 
 Microsoft's high-level programming languages, such as C#, are compiled to CIL bytecode. The instruction set architecture of CIL operates on a stack virtual machine with local variables. CIL instruction's operands are implicit because they are elements in the stack. `net-ssa` provides a register-based intermediate representation for CIL where operands become explicit.
 
@@ -14,40 +14,64 @@ If you have any questions or suggestions, feel free to open an issue to discuss 
 
 * [Quick setup](#quick-setup)
 * [Build from sources](#build-from-sources)
+* [Build native dependencies](#build-native-dependencies)
 * [Example: net-ssa-cli](#disassembling-with-net-ssa-cli)
 * [Example: net-ssa-lib](#disassembling-with-net-ssa-lib)
 * [Contributing](#contributing)
 * [Acknowledgements](#acknowledgements)
 
 ## Quick setup
+
 It is possible to develop and test `net-ssa` without installing any dependency in your system but [Docker](https://docs.docker.com/get-docker/).
+However, it is adviced to compile the project at least once in the host system. This is mainly for downloading dependencies and correctly setting up any IDE.
 
 1. `git clone git@github.com:m-carrasco/net-ssa.git`
 2. `cd net-ssa`
-3. `docker build -t net-ssa/net-ssa .`
-4. `docker run --name dev -v $(pwd):/net-ssa -ti net-ssa/net-ssa`
+3. `git lfs checkout`
+    * Install [git lfs](https://git-lfs.github.com/)
+4.  `dotnet build && dotnet test`
+    * This is optional, it requires installing dotnet.
+5. `docker build -t net-ssa/net-ssa .`
+6. `docker run --name dev -v $(pwd):/net-ssa -ti net-ssa/net-ssa`
    * This is now an interactive container. `$(pwd)` of the host is shared with the container as `net-ssa` source code folder.
-5. Introduce changes in the source code using your IDE as usual.
-6. Build and test in the container, execute these commands in the container terminal:
+7. Introduce changes in the source code using your IDE as usual.
+8. Build and test in the container, execute these commands in the container terminal:
    * `cd build`
-   * `make build-dotnet`
+   * `(cd /net-ssa && dotnet build)`
    * `lit integration-test/ -vvv`
    * `exit # once you finish working`
-7.  `docker start -i dev # to resume the container terminal`
+9.  `docker start -i dev # to resume the container terminal`
+
 
 ## Build from sources
 
-### Ubuntu 20.04.3
+### Ubuntu 20.04
 
-1. Read [Dockerfile](https://github.com/m-carrasco/net-ssa/blob/main/Dockerfile)
+1. `cd net-ssa`
+2. `git lfs checkout`
+    * Install [git lfs](https://git-lfs.github.com/)
+3. `dotnet build`
+4. `dotnet test`
+5. `mkdir build`
+6. `cd build && cmake ..`
+7. `lit integration-test/ -vvv`
 
-### Ubuntu 18.04
+To know the required dependencies for the integration tests (`cmake` and `lit` step), please check the [Dockerfile](https://github.com/m-carrasco/net-ssa/blob/main/Dockerfile).
+The Dockerfile executes the shell scripts under the [ci](https://github.com/m-carrasco/net-ssa/tree/main/ci) folder. You would just need to execute them once in your system.
 
-1. Read [./github/workflow/build.yml](https://github.com/m-carrasco/net-ssa/blob/main/.github/workflows/build.yml)
+### Windows and MacOS
 
-### Windows
+The steps are the same as in Ubuntu. The project building and unit testing is done in the CI. Yet, the integration tests aren't configured.
+Anyway, the dependencies should be the same as in Ubuntu. If you encounter any problem while trying this, please open an issue.
 
-It has not been tested yet. However, it should work as long as Souffle can be installed. Souffle can run there using _Windows Subsystem for Linux_.
+## Build native dependencies 
+
+`net-ssa` has native dependencies, which are shipped in the project already. You shouldn't need to build them. Usually, this is only required for development. The supported systems are:
+* Linux - x86-64
+* Windows - x86-64
+* MacOS - x86-64 and arm64
+
+In case they must be re-built, [`./net-ssa/souffle/build-all-with-docker.sh`](https://github.com/m-carrasco/net-ssa/blob/main/souffle/build-all-with-docker.sh) is available. The script compiles these dependencies from scratch using the source code in your repository. Under the hood, the script isolates this process using Docker. This only builds the Linux and Windows dependencies. Cross-compilation for MacOS is incredible difficult. If you are a MacOS user, check the CI to figure out the required dependencies and execute `build-souffle-macos-x86-64-arm64.sh`.
 
 ## Examples
 

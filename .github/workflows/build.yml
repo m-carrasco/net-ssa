@@ -1,4 +1,4 @@
-name: .NET
+name: .NET (build, test and release if necessary)
 
 on:
   push:
@@ -7,14 +7,69 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-18.04
-
+  build-macos:
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+    - name: Install Souffle
+      run: brew install --HEAD souffle-lang/souffle/souffle
+    - name: Build Souffle program
+      run: |
+        cd $GITHUB_WORKSPACE/souffle && CXX=clang++ ./build-souffle-macos-x86-64-arm64.sh
+    - name: Build dotnet
+      run: |
+        dotnet build
+        dotnet test --verbosity normal
+    - name: Upload ssa-query-macos-x86-64-arm64
+      # only do it when it hits the default branch 
+      # this artifact is consumed by the release job
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: ssa-query-macos-x86-64-arm64
+        path: ${{ github.workspace }}/souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64
+        retention-days: 1
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+    - name: Build dotnet
+      run: |
+        dotnet build
+        dotnet test --verbosity normal
+
+  build-linux:  
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v0.9.7
       with:
@@ -27,18 +82,6 @@ jobs:
           configFilePath: ${{ github.workspace }}/.github/GitVersion.yml
     - name: Setup Python
       uses: actions/setup-python@v2.2.2
-    - name: Setup mono
-      run: |
-        sudo apt install gnupg ca-certificates
-        sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-        echo "deb https://download.mono-project.com/repo/ubuntu stable-bionic/snapshots/6.12.0.182 main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-        sudo apt update
-        sudo apt-get install -y mono-devel mono-utils
-    - name: Setup llvm-config and FileCheck
-      run: |
-        sudo apt-get install llvm-10 llvm-10-tools
-        sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
-        llvm-config --version
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
@@ -47,35 +90,68 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.9
       with:
         cmake-version: '3.21.x'
-    - name: Setup Souffle
+    - name: Setup dependencies
       run: |
-        curl -LJO https://github.com/souffle-lang/souffle/releases/download/2.0.2/souffle_2.0.2-1_amd64.deb
-        sudo apt-get update
-        sudo apt-get install mcpp
-        sudo dpkg -i souffle_2.0.2-1_amd64.deb
-    - name: Setup LIT
+        sudo chmod +x ci/install-lit.sh && sudo ./ci/install-lit.sh
+        sudo chmod +x ci/install-llvm.sh && sudo ./ci/install-llvm.sh
+        sudo chmod +x ci/install-mono.sh && sudo ./ci/install-mono.sh
+    - name: Build Souffle programs from scratch
       run: |
-        pip install lit
-    - name: Configure
+        cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
+    - name: Build dotnet
+      run: |
+        dotnet build
+        dotnet test --verbosity normal
+    - name: Configure LIT test cases
       run: |
         mkdir build
         cd build 
         cmake .. 
-    - name: Build
-      run: |
-        cd build
-        make build-souffle
-        make build-dotnet
-    - name: Unit test
-      run: |
-        cd build
-        make check-unit-test
     - name: Integration test
       run: |
         cd build
         lit integration-test -v
-    - name: Generate nuget packages
-      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+  release:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: [build-macos, build-windows, build-linux]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0.9.7
+      with:
+        versionSpec: '5.x'
+    - name: Calculate version
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0.9.7
+      with:
+          useConfigFile: true
+          configFilePath: ${{ github.workspace }}/.github/GitVersion.yml
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+    - name: Build Souffle programs from scratch
       run: |
-        SOUFFLE_BIN_DIR=$(pwd)/build/bin/souffle dotnet pack net-ssa.sln -o:build/bin/net-ssa/package --include-symbols --include-source /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }} /p:PackageVersion=${{ steps.gitversion.outputs.AssemblySemVer }}
+        cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
+    - name: Fetch macos binary
+      uses: actions/download-artifact@master
+      with:
+        name: ssa-query-macos-x86-64-arm64
+        path: ${{ github.workspace }}/souffle/bin/macos-x86-64-arm64/
+    - name: Build dotnet
+      run: |
+        dotnet build
+        dotnet test --verbosity normal
+    - name: Generate nuget packages
+      run: |
+        dotnet pack net-ssa.sln -o:build/bin/net-ssa/package --include-symbols --include-source /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }} /p:PackageVersion=${{ steps.gitversion.outputs.AssemblySemVer }}
         dotnet nuget push build/bin/net-ssa/package/net-ssa-lib.${{ steps.gitversion.outputs.NuGetVersionV2 }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json

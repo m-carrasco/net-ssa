@@ -13,7 +13,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="$(SOUFFLE_BIN_DIR)\ssa-query">
+    <Content Include="../souffle/bin/linux-x86-64/ssa-query-linux-x86-64">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <Pack>true</Pack>
+        <PackageCopyToOutput>true</PackageCopyToOutput>
+    </Content>
+    <Content Include="../souffle/bin/windows-x86-64/ssa-query-windows-x86-64.exe">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <Pack>true</Pack>
+        <PackageCopyToOutput>true</PackageCopyToOutput>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('../souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64')">
+    <Content Include="../souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         <Pack>true</Pack>
         <PackageCopyToOutput>true</PackageCopyToOutput>

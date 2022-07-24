@@ -1,4 +1,4 @@
-name: docker-ubuntu
+name: Docker image
 
 on:
   push:
@@ -12,5 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          lfs: true
+      - name: Checkout LFS objects
+        run: git lfs checkout
       - name: Build the Docker image
+        # On purpose Souffle programs aren't compiled from scratch.
+        # This is helpful if we forget to update the ones shipped in the repository.
         run: cd $GITHUB_WORKSPACE && docker build . --file Dockerfile --tag net-ssa:net-ssa
