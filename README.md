@@ -26,18 +26,20 @@ However, it is adviced to compile the project at least once in the host system. 
 
 1. `git clone git@github.com:m-carrasco/net-ssa.git`
 2. `cd net-ssa`
-3.  `dotnet build && dotnet test`
+3. `git lfs checkout`
+    * Install [git lfs](https://git-lfs.github.com/)
+4.  `dotnet build && dotnet test`
     * This is optional, it requires installing dotnet.
-4. `docker build -t net-ssa/net-ssa .`
-5. `docker run --name dev -v $(pwd):/net-ssa -ti net-ssa/net-ssa`
+5. `docker build -t net-ssa/net-ssa .`
+6. `docker run --name dev -v $(pwd):/net-ssa -ti net-ssa/net-ssa`
    * This is now an interactive container. `$(pwd)` of the host is shared with the container as `net-ssa` source code folder.
-6. Introduce changes in the source code using your IDE as usual.
-7. Build and test in the container, execute these commands in the container terminal:
+7. Introduce changes in the source code using your IDE as usual.
+8. Build and test in the container, execute these commands in the container terminal:
    * `cd build`
    * `(cd /net-ssa && dotnet build)`
    * `lit integration-test/ -vvv`
    * `exit # once you finish working`
-8.  `docker start -i dev # to resume the container terminal`
+9.  `docker start -i dev # to resume the container terminal`
 
 
 ## Build from sources
@@ -45,11 +47,13 @@ However, it is adviced to compile the project at least once in the host system. 
 ### Ubuntu 20.04
 
 1. `cd net-ssa`
-2. `dotnet build`
-3. `dotnet test`
-4. `mkdir build`
-5. `cd build && cmake ..`
-6. `lit integration-test/ -vvv`
+2. `git lfs checkout`
+    * Install [git lfs](https://git-lfs.github.com/)
+3. `dotnet build`
+4. `dotnet test`
+5. `mkdir build`
+6. `cd build && cmake ..`
+7. `lit integration-test/ -vvv`
 
 To know the required dependencies for the integration tests (`cmake` and `lit` step), please check the [Dockerfile](https://github.com/m-carrasco/net-ssa/blob/main/Dockerfile).
 The Dockerfile executes the shell scripts under the [ci](https://github.com/m-carrasco/net-ssa/tree/main/ci) folder. You would just need to execute them once in your system.
