@@ -14,6 +14,7 @@ If you have any questions or suggestions, feel free to open an issue to discuss 
 
 * [Quick setup](#quick-setup)
 * [Build from sources](#build-from-sources)
+* [Build native dependencies](#build-native-dependencies)
 * [Example: net-ssa-cli](#disassembling-with-net-ssa-cli)
 * [Example: net-ssa-lib](#disassembling-with-net-ssa-lib)
 * [Contributing](#contributing)
