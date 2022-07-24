@@ -27,7 +27,7 @@ namespace NetSsa.Queries
                 suffix = "-windows-x86-64.exe";
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)){
                 platform = OSPlatform.OSX;
-                suffix = "macos-x86-64-arm64";
+                suffix = "-macos-x86-64-arm64";
             } else {
                 throw new NotImplementedException("Unsupported Operating System");
             }

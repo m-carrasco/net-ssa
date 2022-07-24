@@ -22,10 +22,6 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: '6.0.x'
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@v1.9
-      with:
-        cmake-version: '3.21.x'
     - name: Install Souffle
       run: brew install --HEAD souffle-lang/souffle/souffle
     - name: Build Souffle program
@@ -51,10 +47,6 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: '6.0.x'
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@v1.9
-      with:
-        cmake-version: '3.21.x'
     - name: Build dotnet
       run: |
         dotnet build
