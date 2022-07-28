@@ -278,8 +278,8 @@ The simple operation just characterizes the kind of value that a register can ho
 * `GenericParameter`
     * with a reference to the actual generic parameter (if possible).
 * `ObjectReference`
-    * no reference to the actual class is provided.
-    * It requires merging the operands' types of a `phi` instruction, which is a merge point. Merging implies reasoning about the class hierarchy which is not built-in in `Mono.Cecil`.  
+    * with a reference to the actual class (as long as it doesn't involve unsafe memory accesses or merging different types).
+    * Merging implies reasoning about the class hierarchy which is not built-in in `Mono.Cecil`. This involves `phi` instructions.  
 
 The simple operation mode can be called as shown in the `TestExampleDisassemble` unit test.
 
@@ -299,7 +299,8 @@ The precise operation can provide the actual class that an object reference is. 
 * `GenericParameter`
     * with a reference to the actual generic parameter (if possible).
 * `ObjectReference`
-    * with a reference to the actual class (if possible).
+    * with a reference to the actual class (if possible). This work also for non-assembly types.
+    * Unsafe memory accesess or opcodes such as `Refanytype` are not handled. In these cases, the analysis just infers that it is an `ObjectReference` but not the actual class.
 
 The precise operation mode can be called as shown in the `MergeTypeMscorlib` unit test. The class hierarchy analysis converts `Mono.Cecil.TypeReference` to `System.Type`. This simplifies the process of writing from scratch subtying rules, etc. `System.Type` references are converted back to `Mono.Cecil.TypeReference`.  
 
