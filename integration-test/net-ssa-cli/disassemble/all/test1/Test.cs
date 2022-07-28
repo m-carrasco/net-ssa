@@ -1,4 +1,4 @@
-// RUN: %net-ssa-cli /usr/lib/mono/4.5/mscorlib.dll disassemble all > %t.disassemble
+// RUN: %net-ssa-cli %test-resources-dir/mscorlib.dll disassemble all > %t.disassemble
 // RUN: %FileCheck %s --match-full-lines < %t.disassemble
 
 // COM: It is testing only the last method.

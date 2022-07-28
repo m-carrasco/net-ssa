@@ -5,11 +5,10 @@ using Mono.Cecil;
 using Mono.Cecil.Rocks;
 using Mono.Cecil.Cil;
 using NetSsa.Instructions;
-using NetSsa.Reflection;
 
 namespace NetSsa.Analyses
 {
-    public class StackType{
+    public class StackType {
         public enum StackTypeKind{
             Int32,
             Int64,
@@ -25,20 +24,26 @@ namespace NetSsa.Analyses
         public static readonly StackType StackTypeInt64 = new StackType(StackTypeKind.Int64);
         public static readonly StackType StackTypeNativeInt = new StackType(StackTypeKind.NativeInt);
         public static readonly StackType StackTypeNativeFloat = new StackType(StackTypeKind.NativeFloat);
-        public static readonly StackType StackTypeNativeObjectRef = new StackType(StackTypeKind.NativeObjectRef);
-        public static readonly StackType StackTypeNativeManagedPointer = new StackType(StackTypeKind.NativeManagedPointer);
+        public static readonly StackType StackTypeUnknownNativeManagedPointer = new StackType(StackTypeKind.NativeManagedPointer);
+        public static readonly StackType StackTypeNullObjectRef = NullStackType.Singleton;
+        public static readonly StackType StackTypeUnknownObjectRef = new StackType(StackTypeKind.NativeObjectRef);
 
         public StackTypeKind Kind;
         public TypeReference UserDefinedValueType;
         public GenericParameter GenericParameter;
-        
-        private StackType(StackTypeKind k){
+        public ByReferenceType ManagedPointerType;
+
+        protected StackType(StackTypeKind k){
             Kind = k;
         }
 
-        private StackType(TypeReference userType){
+        protected StackType(TypeReference userType){
             Kind = StackTypeKind.UserDefineValueType;
             UserDefinedValueType = userType;
+        }
+
+        public static StackType CreateManagedPointer(ByReferenceType type){
+            return new StackType(StackTypeKind.NativeManagedPointer) { ManagedPointerType = type };
         }
 
         public static StackType CreateUserDefined(TypeReference type){
@@ -49,42 +54,12 @@ namespace NetSsa.Analyses
             return new StackType(StackTypeKind.GenericParameter) { GenericParameter = type};
         }
 
-        public override bool Equals(Object obj)
-        {
-            if (obj is StackType stackType && this.Kind == stackType.Kind){
-                switch (this.Kind){
-                    case StackType.StackTypeKind.Int32:
-                    case StackType.StackTypeKind.Int64:
-                    case StackType.StackTypeKind.NativeInt:
-                    case StackType.StackTypeKind.NativeFloat:
-                    case StackType.StackTypeKind.NativeObjectRef:
-                    case StackType.StackTypeKind.NativeManagedPointer:
-                        return true;
-                    case StackType.StackTypeKind.GenericParameter:
-                        return this.GenericParameter.Equals(stackType.GenericParameter);
-                    case StackType.StackTypeKind.UserDefineValueType:
-                        return StackTypeInference.AreEqual(this.UserDefinedValueType, stackType.UserDefinedValueType);
-                }
-            }
+        public virtual Boolean IsNullStackType() {
             return false;
         }
 
-        public override int GetHashCode()
-        {
-            switch (this.Kind){
-                case StackType.StackTypeKind.Int32:
-                case StackType.StackTypeKind.Int64:
-                case StackType.StackTypeKind.NativeInt:
-                case StackType.StackTypeKind.NativeFloat:
-                case StackType.StackTypeKind.NativeObjectRef:
-                case StackType.StackTypeKind.NativeManagedPointer:
-                case StackType.StackTypeKind.GenericParameter:
-                case StackType.StackTypeKind.UserDefineValueType:
-                // TODO: Not sure if it would better to extend this for GenericParameter and UserDefinedValueType
-                    return this.Kind.GetHashCode();
-                default:
-                    throw new ArgumentException("Unhandled case");
-            }
+        public virtual Boolean IsBoxStackType() {
+            return false;
         }
 
         public override string ToString()
@@ -94,16 +69,70 @@ namespace NetSsa.Analyses
                 case StackType.StackTypeKind.Int64:
                 case StackType.StackTypeKind.NativeInt:
                 case StackType.StackTypeKind.NativeFloat:
-                case StackType.StackTypeKind.NativeObjectRef:
-                case StackType.StackTypeKind.NativeManagedPointer:
                     return this.Kind.ToString();
                 case StackType.StackTypeKind.GenericParameter:
                     return this.Kind.ToString() + "<" + this.GenericParameter + ">";
                 case StackType.StackTypeKind.UserDefineValueType:
                     return this.Kind.ToString() + "<" + this.UserDefinedValueType + ">";
+                case StackType.StackTypeKind.NativeManagedPointer:
+                {
+                    if (this.Equals(StackTypeUnknownNativeManagedPointer)){
+                        return "UnknownManagedPointer";
+                    }
+
+                    return this.Kind.ToString() + "<" + this.ManagedPointerType.FullName + ">";
+                }
+                case StackType.StackTypeKind.NativeObjectRef:
+                {
+                    if (this.Equals(StackTypeUnknownObjectRef)){
+                        return "UnknownObjectRef";
+                    }
+
+                    if (this.Equals(StackTypeNullObjectRef)){
+                        return "NullObjectRef";
+                    }
+
+                    if (this is AssemblyObjectReferenceStackType assemblyReference){
+                        return "ObjectRef<" + assemblyReference.AssemblyTypeReference.FullName + ">";
+                    }
+
+                    if (this is BoxStackType boxStackType){
+                        return "Box<" + boxStackType.BoxedType.FullName + ">";
+                    }
+
+                    throw new NotSupportedException("Unhandled NativeObjectRef");
+                }
                 default:
                     throw new ArgumentException("Unhandled case");
             }
+        }
+    }
+
+    public class AssemblyObjectReferenceStackType : StackType {
+        public TypeReference AssemblyTypeReference;
+
+        public AssemblyObjectReferenceStackType(TypeReference type) : base(StackTypeKind.NativeObjectRef) {
+            AssemblyTypeReference = type;
+        }
+    }
+
+    public class NullStackType : StackType{
+        public static readonly NullStackType Singleton = new NullStackType();
+        private NullStackType() : base(StackTypeKind.NativeObjectRef) {}
+        public override Boolean IsNullStackType() {
+            return true;
+        }
+    }
+
+    public class BoxStackType : StackType{
+        public TypeReference BoxedType;
+        public Boolean IsNullable;
+        public BoxStackType(TypeReference boxed, bool isNullable = false) : base(StackTypeKind.NativeObjectRef) {
+            BoxedType = boxed;
+            IsNullable = isNullable;
+        }
+        public override Boolean IsBoxStackType() {
+            return true;
         }
     }
 
@@ -112,14 +141,82 @@ namespace NetSsa.Analyses
         private ModuleDefinition _module;
         private MethodDefinition _method;
         private TypeSystem _typeSystem;
-        
+        private bool _mergeTypes;
+        LowestCommonAncestor _lca;
+
         public StackTypeInference(IRBody body){
             _body = body;
             _method = body.CilBody.Method;
             _module = _method.Module;
             _typeSystem = _module.TypeSystem;
+            _mergeTypes = false;
+        }
+
+        public StackTypeInference(IRBody body, LowestCommonAncestor lca) : this(body) {
+            if (lca == null){
+                throw new ArgumentNullException("LowestCommonAncestor cannot be null");
+            }
+            _mergeTypes = true;
+            _lca = lca;
         }
         
+        private static bool BasicStackTypeEquality(StackType a, StackType b){
+            if (a.Kind == b.Kind){
+                switch (a.Kind){
+                    case StackType.StackTypeKind.Int32:
+                    case StackType.StackTypeKind.Int64:
+                    case StackType.StackTypeKind.NativeInt:
+                    case StackType.StackTypeKind.NativeFloat:
+                    case StackType.StackTypeKind.NativeManagedPointer:
+                    case StackType.StackTypeKind.NativeObjectRef:
+                        return true;
+                    case StackType.StackTypeKind.GenericParameter:
+                        return a.GenericParameter.Equals(b.GenericParameter);
+                    case StackType.StackTypeKind.UserDefineValueType:
+                        return StackTypeInference.AreEqual(a.UserDefinedValueType, b.UserDefinedValueType);
+                }
+            }
+            return false;
+        }
+
+        private static bool FullStackTypeEquality(StackType a, StackType b){
+            if (a.Kind == b.Kind){
+                switch (a.Kind){
+                    case StackType.StackTypeKind.Int32:
+                    case StackType.StackTypeKind.Int64:
+                    case StackType.StackTypeKind.NativeInt:
+                    case StackType.StackTypeKind.NativeFloat:
+                        return true;
+                    case StackType.StackTypeKind.NativeObjectRef:
+                    {
+                        // This handles unknown and null stack types
+                        if (a == b){
+                            return true;
+                        }
+
+                        if (a is BoxStackType boxA &&
+                            b is BoxStackType boxB){
+                            return AreEqual(boxA.BoxedType, boxB.BoxedType);
+                        }
+
+                        if (a is AssemblyObjectReferenceStackType assemblyTypeA &&
+                            b is AssemblyObjectReferenceStackType assemblyTypeB){
+                            return AreEqual(assemblyTypeA.AssemblyTypeReference, assemblyTypeB.AssemblyTypeReference);
+                        }
+                        
+                        return false;
+                    }
+                    case StackType.StackTypeKind.NativeManagedPointer:
+                        return AreEqual(a.ManagedPointerType, b.ManagedPointerType);
+                    case StackType.StackTypeKind.GenericParameter:
+                        return a.GenericParameter.Equals(b.GenericParameter);
+                    case StackType.StackTypeKind.UserDefineValueType:
+                        return StackTypeInference.AreEqual(a.UserDefinedValueType, b.UserDefinedValueType);
+                }
+            }
+            return false;
+        }
+
         public IDictionary<Register, StackType> Type(){
             IDictionary<Register, StackType> typing = new Dictionary<Register, StackType>();
             bool extraIteration = false;
@@ -132,7 +229,7 @@ namespace NetSsa.Analyses
                         if (type != null){
                             if (typing.TryGetValue(register, out StackType definedType)){
                                 // This check is not strictly required. It is actually an invariant or assertion.
-                                if (!type.Equals(definedType)){
+                                if (!BasicStackTypeEquality(type,definedType)){
                                     throw new Exception("Unexpected mismatch: " + tacInstruction + " " +  type.Kind + " " + definedType.Kind);
                                 }
                             } else{
@@ -192,13 +289,55 @@ namespace NetSsa.Analyses
                     case Code.Ldind_R4:
                     case Code.Ldind_R8:
                         return StackType.StackTypeNativeFloat;
-                    case Code.Ldstr:
-                    case Code.Ldind_Ref:
                     case Code.Ldnull:
-                    case Code.Ldelem_Ref:
+                        return StackType.StackTypeNullObjectRef;
                     case Code.Box:
+                        return GetBoxType((TypeReference)bytecodeInstruction.EncodedOperand);
+                    case Code.Ldstr:
+                        return new AssemblyObjectReferenceStackType(_typeSystem.String);
                     case Code.Newarr:
-                        return StackType.StackTypeNativeObjectRef;
+                        return new AssemblyObjectReferenceStackType(TypeReferenceRocks.MakeArrayType((TypeReference)bytecodeInstruction.EncodedOperand));
+                    case Code.Ldind_Ref:
+                    {
+                        Register addrReg = (Register)bytecodeInstruction.Operands[0];
+                        if (!typing.ContainsKey(addrReg)){
+                            requireExtraIteration = true;
+                            return null;
+                        }
+
+                        StackType addrType = typing[addrReg];
+                        if (addrType.Kind == StackType.StackTypeKind.NativeInt)
+                        {
+                            return StackType.StackTypeUnknownObjectRef;
+                        }
+                        else if (addrType.Kind == StackType.StackTypeKind.NativeManagedPointer){
+                            // Consider IntermediateType of the element pointed by the managed ptr
+                            if (addrType.Equals(StackType.StackTypeUnknownNativeManagedPointer)){
+                                return StackType.StackTypeUnknownObjectRef;
+                            }
+
+                            return new AssemblyObjectReferenceStackType(GetIntermediateType(addrType.ManagedPointerType.ElementType));
+                        }
+                        
+                        throw new NotSupportedException("Unhandled case for Ldind_ref");
+                    }
+                    case Code.Ldelem_Ref:
+                    {
+                        Register arrayReg = (Register)bytecodeInstruction.Operands[0];
+                        if (!typing.ContainsKey(arrayReg)){
+                            requireExtraIteration = true;
+                            return null;
+                        }
+                        StackType arrayType = typing[arrayReg];
+
+                        if (arrayType.Equals(StackType.StackTypeUnknownObjectRef)){
+                            return StackType.StackTypeUnknownObjectRef;
+                        }
+
+                        AssemblyObjectReferenceStackType assemblyStackType = (AssemblyObjectReferenceStackType)arrayType;
+                        ArrayType refArrayType = (ArrayType)assemblyStackType.AssemblyTypeReference;
+                        return new AssemblyObjectReferenceStackType(GetIntermediateType(refArrayType.ElementType));
+                    }
                     case Code.Conv_U:
                     case Code.Conv_I:
                     case Code.Conv_Ovf_I:
@@ -260,10 +399,20 @@ namespace NetSsa.Analyses
                     case Code.Ldloca_S:
                     case Code.Ldarga:
                     case Code.Ldarga_S:
+                    {
+                        return StackType.CreateManagedPointer(TypeReferenceRocks.MakeByReferenceType(GetTypeFromMemoryVariable(bytecodeInstruction)));
+                    }
                     case Code.Ldelema:
+                    {
+                        return StackType.CreateManagedPointer(TypeReferenceRocks.MakeByReferenceType((TypeReference)bytecodeInstruction.EncodedOperand));
+                    }
                     case Code.Ldsflda:
                     case Code.Ldflda:
-                        return StackType.StackTypeNativeManagedPointer;
+                    {
+                        FieldReference fieldReference = (FieldReference)bytecodeInstruction.EncodedOperand;
+                        TypeReference intermediateType = GetIntermediateType(ResolveParameters(fieldReference.FieldType, (p) => ResolveGenericParameterAsArgument(p, fieldReference)));
+                        return StackType.CreateManagedPointer(new ByReferenceType(intermediateType));
+                    }
                     case Code.Ldfld:
                     case Code.Ldsfld:
                     {
@@ -419,41 +568,84 @@ namespace NetSsa.Analyses
                         return GetStackTypeFromTypeReference(handle);
                     }
                     case Code.Refanytype:
-                        return StackType.StackTypeNativeObjectRef;
+                        return StackType.StackTypeUnknownObjectRef;
                     case Code.Arglist:
                         return GetStackTypeFromTypeReference(_typeSystem.Boolean.Module.GetType("System.RuntimeArgumentHandle") ?? throw new NullReferenceException("System.RuntimeArgumentHandle not found"));
                     case Code.Isinst:
                         return GetStackTypeFromTypeReference((TypeReference)bytecodeInstruction.EncodedOperand);
                     case Code.Unbox:
-                        return StackType.StackTypeNativeManagedPointer;//new ByReferenceType((TypeReference)bytecodeInstruction.EncodedOperand);
+                        return StackType.CreateManagedPointer(TypeReferenceRocks.MakeByReferenceType((TypeReference)bytecodeInstruction.EncodedOperand));
                     case Code.Unbox_Any:
                         return GetStackTypeFromTypeReference(GetIntermediateType((TypeReference)bytecodeInstruction.EncodedOperand));
                     default:
                         throw new NotSupportedException("Unexpected opcode: " + tacInstruction + " in method: " + _body.CilBody.Method.FullName); 
                 }
-            } else if (tacInstruction is PhiInstruction phiInstruction){
+            } else if (tacInstruction is PhiInstruction phiInstruction) {
                 
                 var incomingRegisters = phiInstruction.Operands.Select(i => (Register)i);
                 var definedRegisters = incomingRegisters.Where(r => typing.ContainsKey(r)).ToList();
-                
+                requireExtraIteration = definedRegisters.Count < incomingRegisters.Count();
                 // It cannot be computed yet.
                 if (definedRegisters.Count == 0){
-                    requireExtraIteration = true;
                     return null;
                 }
-
-                if (!definedRegisters.All(r => typing[r].Equals(typing[definedRegisters[0]]))){
-                    throw new Exception("Mismatch between types in phi.");
-                }
-
-                if (definedRegisters.Count < incomingRegisters.Count()){
-                    requireExtraIteration = true;
-                }
-
-                return typing[definedRegisters[0]];
+                
+                return MergeTypes(definedRegisters, typing);
             }
 
             throw new ArgumentException("Unhandled argument");
+        }
+
+        private StackType MergeTypes(IList<Register> definedRegisters, IDictionary<Register, StackType> typing){
+            Register firstDefinedRegister = definedRegisters[0];
+            if (!definedRegisters.All(r => BasicStackTypeEquality(typing[r], typing[firstDefinedRegister]))){
+                throw new Exception("Mismatch between types in phi.");
+            }
+
+            // If all types are object references, ignore null stack type because it can match any other type.
+            if (definedRegisters.All(r => typing[r].Kind == StackType.StackTypeKind.NativeObjectRef)){
+                foreach (var r in definedRegisters.Where(r => typing[r].IsNullStackType()).ToList()){
+                    definedRegisters.Remove(r);
+                }
+
+                if (definedRegisters.Count == 0){
+                    return StackType.StackTypeNullObjectRef;
+                }
+
+                firstDefinedRegister = definedRegisters[0];
+            }
+
+            if (!definedRegisters.All(r => FullStackTypeEquality(typing[r], typing[definedRegisters[0]]))){
+                switch (typing[firstDefinedRegister].Kind){
+                    case StackType.StackTypeKind.NativeManagedPointer:
+                        return StackType.StackTypeUnknownNativeManagedPointer;
+                    case StackType.StackTypeKind.NativeObjectRef:
+                    {
+                        if (!_mergeTypes)
+                            return StackType.StackTypeUnknownObjectRef;
+
+                        IEnumerable<StackType> stackTypes = definedRegisters.Select(r => typing[r]);
+
+                        if (stackTypes.Any(st => st.Equals(StackType.StackTypeUnknownObjectRef))){
+                            return StackType.StackTypeUnknownObjectRef;
+                        }
+
+                        TypeReference[] typeReferences = stackTypes.Select(st => {
+                            if (st is BoxStackType){
+                                return _typeSystem.Object;
+                            } else{
+                                AssemblyObjectReferenceStackType assembly = (AssemblyObjectReferenceStackType)st;
+                                return assembly.AssemblyTypeReference;
+                            }
+                        }).ToArray();
+                        return new AssemblyObjectReferenceStackType(_lca.GetLowestCommonAncestor(typeReferences));
+                    }
+                    default:
+                        throw new NotSupportedException("Unhandled case for unknown type");
+                }
+            }
+
+            return typing[firstDefinedRegister];
         }
 
         // Recursively visit all generic parameters in the given 'type' and replace them
@@ -573,7 +765,7 @@ namespace NetSsa.Analyses
                             return StackType.StackTypeNativeInt;
                         case StackType.StackTypeKind.NativeManagedPointer:
                             if (c == Code.Add){
-                                return StackType.StackTypeNativeManagedPointer;
+                                return b;
                             }
                             break;
                     }
@@ -596,7 +788,7 @@ namespace NetSsa.Analyses
                             return StackType.StackTypeNativeInt;
                         case StackType.StackTypeKind.NativeManagedPointer:
                             if (c == Code.Add){
-                                return StackType.StackTypeNativeManagedPointer;
+                                return b;
                             }
                             break;
                     }
@@ -616,12 +808,12 @@ namespace NetSsa.Analyses
                         switch (b.Kind){
                             case StackType.StackTypeKind.Int32:
                             case StackType.StackTypeKind.NativeInt:
-                                return StackType.StackTypeNativeManagedPointer;
+                                return a;
                         }
 
                         if (c == Code.Sub){
                             if (b.Kind == StackType.StackTypeKind.NativeManagedPointer){
-                                return StackType.StackTypeNativeInt;
+                                return a;
                             }
                         }
                     }
@@ -652,7 +844,7 @@ namespace NetSsa.Analyses
                             return StackType.StackTypeNativeInt;
                         case StackType.StackTypeKind.NativeManagedPointer:
                             if (c == Code.Add_Ovf_Un){
-                                return StackType.StackTypeNativeManagedPointer;
+                                return b;
                             }
                             break;
                     }
@@ -675,7 +867,7 @@ namespace NetSsa.Analyses
                             return StackType.StackTypeNativeInt;
                         case StackType.StackTypeKind.NativeManagedPointer:
                             if (c == Code.Add_Ovf_Un){
-                                return StackType.StackTypeNativeManagedPointer;
+                                return b;
                             }
                             break;
                     }
@@ -687,7 +879,7 @@ namespace NetSsa.Analyses
                         switch (b.Kind){
                             case StackType.StackTypeKind.Int32:
                             case StackType.StackTypeKind.NativeInt:
-                                return StackType.StackTypeNativeManagedPointer;
+                                return a;
                         }
 
                         if (c == Code.Sub_Ovf_Un){
@@ -813,6 +1005,36 @@ namespace NetSsa.Analyses
             return memVar.Type;
         }
 
+
+        private StackType GetBoxType(TypeReference typeToken){
+            // I'm not sure if this is the correct way to check for Nullable.
+            // At least, this is how cecil does it.
+
+            bool isNullable = IsTypeOf(typeToken, "System", "Nullable`1");
+            bool isGenericParameter = typeToken is GenericParameter;
+
+            if (isGenericParameter){
+                return new BoxStackType(typeToken);
+            }
+
+            if (isNullable){
+                return new BoxStackType(typeToken.GetElementType(), true);
+            } else{
+                TypeDefinition def = typeToken.Resolve();
+                if (def.IsValueType){
+                    return new BoxStackType(typeToken);
+                } else{
+                    return new AssemblyObjectReferenceStackType(typeToken);
+                }
+            }
+        }
+
+        public static bool IsTypeOf (TypeReference self, string @namespace, string name)
+        {
+            return self.Name == name
+                && self.Namespace == @namespace;
+        }
+
         private StackType GetStackTypeFromTypeReference(TypeReference typeReference)
         {
             /*
@@ -833,7 +1055,7 @@ namespace NetSsa.Analyses
             }
 
             if (typeReference.IsArray) {
-                return StackType.StackTypeNativeObjectRef;
+                return new AssemblyObjectReferenceStackType(typeReference);
             }
 
             if (typeReference.IsGenericParameter)
@@ -846,7 +1068,7 @@ namespace NetSsa.Analyses
             TypeReference intermediateType = GetIntermediateType(typeReference);
 
             if (intermediateType.IsByReference){
-                return StackType.StackTypeNativeManagedPointer;
+                return StackType.CreateManagedPointer((ByReferenceType)intermediateType);
             }
 
             if (AreEqual(_typeSystem.Int32, intermediateType)){
@@ -869,7 +1091,7 @@ namespace NetSsa.Analyses
             if (def.IsValueType){
                 return StackType.CreateUserDefined(typeReference);
             } else {
-                return StackType.StackTypeNativeObjectRef;
+                return new AssemblyObjectReferenceStackType(typeReference);
             }
         }
 
@@ -1078,7 +1300,7 @@ namespace NetSsa.Analyses
             return typeSystem.Double;
         }
 
-        public static bool AreEqual(TypeReference a, TypeReference b){
+        private static bool AreEqual(TypeReference a, TypeReference b){
             if (a == null || b == null){
                 throw new ArgumentNullException();
             }

@@ -18,4 +18,10 @@
     <ProjectReference Include="..\net-ssa-lib\net-ssa-lib.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="../test-resources/mscorlib.dll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
