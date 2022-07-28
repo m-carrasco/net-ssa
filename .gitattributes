@@ -2,3 +2,4 @@
 souffle/bin/linux-x86-64/ssa-query-linux-x86-64 filter=lfs diff=lfs merge=lfs -text
 souffle/bin/windows-x86-64/ssa-query-windows-x86-64.exe filter=lfs diff=lfs merge=lfs -text
 souffle/bin/macos-x86-64-arm64/ssa-query-macos-x86-64-arm64 filter=lfs diff=lfs merge=lfs -text
+test-resources/mscorlib.dll filter=lfs diff=lfs merge=lfs -text

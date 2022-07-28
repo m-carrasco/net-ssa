@@ -17,6 +17,7 @@ If you have any questions or suggestions, feel free to open an issue to discuss 
 * [Build native dependencies](#build-native-dependencies)
 * [Example: net-ssa-cli](#disassembling-with-net-ssa-cli)
 * [Example: net-ssa-lib](#disassembling-with-net-ssa-lib)
+* [Type inference analysis](#type-inference-analysis)
 * [Contributing](#contributing)
 * [Acknowledgements](#acknowledgements)
 
@@ -241,6 +242,66 @@ public void YourFunction(Mono.Cecil.MethodDefinition methodDefinition)
 
 This example is based on the `TestExampleDisassemble` unit test. `net-ssa-cli` can be a good starting point to understand how to call `net-ssa-lib`. 
 
+## Type inference analysis
+
+In SSA, `net-ssa` provides a type inference analysis for registers. Registers come from stack location definitions in the original CIL code (stack-based representation). A register (originally a stack location), according to ECMA-CIL, can hold a value of the following types
+
+* `Int32` and `Int64`
+* `NativeInt` (`IntPtr` in C#)
+    * The internal representation that the runtime implementation chooses for pointers. Nowadays, it usually is `Int64`. 
+* `NativeFloat`
+    * The internal representation that the runtime implementation chooses for `float32` and `float64`. Usually, it is `float64`.
+* `ObjectReference`
+    * An assembly-defined class.
+    * A boxed value (the `Box` class is not defined in any assembly).
+    * A null value (the `Null` class loaded by `ldnull` is not defined in any assembly).
+* `UserDefinedValueType`
+    * Value types which are not the built-in ones.
+* `ManagedPointer`
+* `GenericParameter`
+
+`net-ssa` provides an analysis to infer this information for each register. This analysis provides two operation modes in regard to the precision of the results. The analysis is implemented in the `StackTypeInference` class.
+
+### Simple type inference analysis
+
+The simple operation just characterizes the kind of value that a register can hold. The infered `StackType` for a register can be
+
+* `Int32` and `Int64`
+* `NativeInt`
+* `NativeFloat`
+* `UserDefinedValueType`
+    * with a reference to the actual user-defined value type.
+    * ECMA-CIL does not allow merge points of value types, so it is possible to precisely return it.
+* `ManagedPointer`
+    * with a reference to the actual managed pointer type (if possible).
+    * Merging managed pointers is legal but not verifiable CIL. To the best of my knowledge, there is no hierarchy of managed pointers. 
+* `GenericParameter`
+    * with a reference to the actual generic parameter (if possible).
+* `ObjectReference`
+    * no reference to the actual class is provided.
+    * It requires merging the operands' types of a `phi` instruction, which is a merge point. Merging implies reasoning about the class hierarchy which is not built-in in `Mono.Cecil`.  
+
+The simple operation mode can be called as shown in the `TestExampleDisassemble` unit test.
+
+### Precise type inference analysis
+
+The precise operation can provide the actual class that an object reference is. This is true as long as it does not involve unsafe load operations or the `Refanytype` opcode. The infered `StackType` for a register can be
+
+* `Int32` and `Int64`
+* `NativeInt`
+* `NativeFloat`
+* `UserDefinedValueType`
+    * with a reference to the actual user-defined value type.
+    * ECMA-CIL does not allow merge points of value types, so it is possible to precisely return it.
+* `ManagedPointer`
+    * with a reference to the actual managed pointer type (if possible).
+    * Merging managed pointers is legal but not verifiable CIL. To the best of my knowledge, there is no hierarchy of managed pointers. 
+* `GenericParameter`
+    * with a reference to the actual generic parameter (if possible).
+* `ObjectReference`
+    * with a reference to the actual class (if possible).
+
+The precise operation mode can be called as shown in the `MergeTypeMscorlib` unit test. The class hierarchy analysis converts `Mono.Cecil.TypeReference` to `System.Type`. This simplifies the process of writing from scratch subtying rules, etc. `System.Type` references are converted back to `Mono.Cecil.TypeReference`.  
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

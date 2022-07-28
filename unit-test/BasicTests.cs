@@ -6,7 +6,6 @@ using Mono.Cecil.Cil;
 using NetSsa.Analyses;
 using NetSsa.Facts;
 using NetSsa.Instructions;
-using NetSsa.Queries;
 using NUnit.Framework;
 
 namespace UnitTest
