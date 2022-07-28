@@ -264,14 +264,14 @@ In SSA, `net-ssa` provides a type inference analysis for registers. Registers co
 
 ### Simple type inference analysis
 
-The simple operation just characterizes the kind of value that a register can hold. The infered `StackType` for a register can be
+The simple type inference just characterizes the kind of value that a register can hold. The infered `StackType` for a register can be
 
 * `Int32` and `Int64`
 * `NativeInt`
 * `NativeFloat`
 * `UserDefinedValueType`
     * with a reference to the actual user-defined value type.
-    * ECMA-CIL does not allow merge points of value types, so it is possible to precisely return it.
+    * ECMA-CIL does not allow merge points of value types, so it is possible to precisely compute it.
 * `ManagedPointer`
     * with a reference to the actual managed pointer type (if possible).
     * Merging managed pointers is legal but not verifiable CIL. To the best of my knowledge, there is no hierarchy of managed pointers. 
@@ -299,7 +299,7 @@ The precise operation can provide the actual class that an object reference is. 
 * `GenericParameter`
     * with a reference to the actual generic parameter (if possible).
 * `ObjectReference`
-    * with a reference to the actual class (if possible). This work also for non-assembly types.
+    * with a reference to the actual class (if possible). This works also for non-assembly types.
     * Unsafe memory accesess or opcodes such as `Refanytype` are not handled. In these cases, the analysis just infers that it is an `ObjectReference` but not the actual class.
 
 The precise operation mode can be called as shown in the `MergeTypeMscorlib` unit test. The class hierarchy analysis converts `Mono.Cecil.TypeReference` to `System.Type`. This simplifies the process of writing from scratch subtying rules, etc. `System.Type` references are converted back to `Mono.Cecil.TypeReference`.  
