@@ -20,6 +20,11 @@ If you have any questions or suggestions, feel free to open an issue to discuss 
 * [Contributing](#contributing)
 * [Acknowledgements](#acknowledgements)
 
+## Mirror
+
+If you face issues while cloning related to Git LFS, please use the [mirror repository](https://bitbucket.org/m-carrasco/net-ssa-mirror/).
+This is caused by Github's Git LFS bandwidth, which is 1GB per month.
+
 ## Quick setup
 
 It is possible to develop and test `net-ssa` without installing any dependency in your system but [Docker](https://docs.docker.com/get-docker/).
