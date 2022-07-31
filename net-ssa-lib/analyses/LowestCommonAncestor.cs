@@ -8,11 +8,9 @@ using Mono.Cecil.Rocks;
 namespace NetSsa.Analyses
 {
     public class LowestCommonAncestor{
-        private ISet<AssemblyDefinition> _loadedAssemblies;
         private TypeAdapter _typeAdapter;
 
-        public LowestCommonAncestor(ISet<AssemblyDefinition> loadedAssemblies, TypeAdapter typeAdapter){
-            _loadedAssemblies = loadedAssemblies;
+        public LowestCommonAncestor(TypeAdapter typeAdapter){
             _typeAdapter = typeAdapter;
         }
 
@@ -24,7 +22,7 @@ namespace NetSsa.Analyses
 
         public TypeReference GetLowestCommonAncestor(TypeReference[] typeReferences){
             Type systemReflectionLca = ClassHierarchy.GetLowestCommonAncestor(typeReferences.Select(tr => _typeAdapter.ToSystemReflectionType(tr)).ToArray());
-            return Importer.Import(systemReflectionLca, _loadedAssemblies);
+            return Importer.Import(systemReflectionLca, new DefaultReflectionImporter(typeReferences[0].Module));
         }
     }
 }

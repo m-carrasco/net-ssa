@@ -22,6 +22,9 @@
     <Content Include="../test-resources/mscorlib.dll">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="../test-resources/DSA.dll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

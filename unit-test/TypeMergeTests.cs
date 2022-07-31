@@ -11,13 +11,16 @@ using System.Diagnostics;
 using NetSsa.Analyses;
 using NetSsa.Instructions;
 using System.Runtime.InteropServices;
+using Mono.Reflection;
 
 namespace UnitTest
 {
     public class TypeMergeTests
     {
         private AssemblyDefinition _mscorlib = null;
+        private AssemblyDefinition _dsa = null;
         private String _mscorlibPath = String.Empty;
+        private String _dsaPath = String.Empty;
 
         [OneTimeSetUp]
         public void StartTest()
@@ -31,6 +34,8 @@ namespace UnitTest
         {
             _mscorlibPath = Path.Join(Directory.GetParent(Assembly.GetAssembly(typeof(Tests)).Location).FullName, "mscorlib.dll");
             _mscorlib = AssemblyDefinition.ReadAssembly(_mscorlibPath);
+            _dsaPath = Path.Join(Directory.GetParent(Assembly.GetAssembly(typeof(Tests)).Location).FullName, "DSA.dll");
+            _dsa = AssemblyDefinition.ReadAssembly(_dsaPath);
         }
 
         [TearDown]
@@ -39,20 +44,24 @@ namespace UnitTest
             _mscorlib.Dispose();
         }
 
-        private MetadataLoadContext BuildMetadataLoadContext(){
+        private MetadataLoadContext BuildMetadataLoadContextForMonoMscorlib(){
             string[] runtimeAssemblies = new string[] {_mscorlibPath};
             // Create the list of assembly paths consisting of runtime assemblies and the inspected assembly.
             var paths = new List<string>(runtimeAssemblies);
 
             // Create PathAssemblyResolver that can resolve assemblies using the created list.
             var resolver = new PathAssemblyResolver(paths);
-            return new MetadataLoadContext(resolver, "mscorlib");
+            var context = new MetadataLoadContext(resolver, "mscorlib");
+            if (context.CoreAssembly == null){
+                throw new NotSupportedException("CoreAssembly cannot be null.");
+            }
+            return context;
         }
 
         [Test]
         public void MergeTypesTest()
         {
-            MetadataLoadContext metadataLoadContext = BuildMetadataLoadContext();
+            MetadataLoadContext metadataLoadContext = BuildMetadataLoadContextForMonoMscorlib();
             TypeAdapter typeAdapter = new TypeAdapter(metadataLoadContext);
 
             TypeDefinition t0 = _mscorlib.MainModule.GetType("System.Collections.Generic.IList`1");
@@ -105,9 +114,9 @@ namespace UnitTest
         [Test]
         public void LowestCommonAncestorTest()
         {
-            MetadataLoadContext metadataLoadContext = BuildMetadataLoadContext();
+            MetadataLoadContext metadataLoadContext = BuildMetadataLoadContextForMonoMscorlib();
             TypeAdapter typeAdapter = new TypeAdapter(metadataLoadContext);
-            LowestCommonAncestor lowestCommonAncestor = new LowestCommonAncestor(new HashSet<AssemblyDefinition> {_mscorlib}, typeAdapter);
+            LowestCommonAncestor lowestCommonAncestor = new LowestCommonAncestor(typeAdapter);
 
             TypeDefinition t0 = _mscorlib.MainModule.GetType("System.Collections.Generic.IList`1");
             TypeDefinition t1 = _mscorlib.MainModule.GetType("System.Collections.Generic.List`1");
@@ -140,16 +149,22 @@ namespace UnitTest
         }
 
         [Test]
+        // Unfortunately, I have no way to debug the issue for osx
+        [Platform(Exclude="MacOsX")]
         public void MergeTypeMscorlib(){
             // Unfortunately, I have no way to debug the issue for osx
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)){
                 Assert.Pass();
             }
 
-            MetadataLoadContext metadataLoadContext = BuildMetadataLoadContext();
+            MetadataLoadContext metadataLoadContext = BuildMetadataLoadContextForMonoMscorlib();
             TypeAdapter typeAdapter = new TypeAdapter(metadataLoadContext);
-            LowestCommonAncestor lowestCommonAncestor = new LowestCommonAncestor(new HashSet<AssemblyDefinition> {_mscorlib}, typeAdapter);
-            foreach (TypeDefinition t in _mscorlib.MainModule.GetTypes())
+            LowestCommonAncestor lowestCommonAncestor = new LowestCommonAncestor(typeAdapter);
+            Process(_mscorlib, lowestCommonAncestor);
+        }
+
+        private static void Process(AssemblyDefinition assembly, LowestCommonAncestor lowestCommonAncestor){
+            foreach (TypeDefinition t in assembly.MainModule.GetTypes())
             {
                 foreach (MethodDefinition m in t.Methods)
                 {
@@ -173,18 +188,51 @@ namespace UnitTest
                             if (ins is BytecodeInstruction bytecodeInstruction){
                                 if (bytecodeInstruction.OpCode != Mono.Cecil.Cil.OpCodes.Refanytype){
                                     // StackTypeUnknownObjectRef can be a valid type. However, it is not
-                                    // present in the current mscorlib
+                                    // present in the our test libraries
                                     Assert.AreNotEqual(StackType.StackTypeUnknownObjectRef, stackType);
                                 }
                             } else if (ins is PhiInstruction){
                                 // StackTypeUnknownObjectRef can be a valid type. However, it is not
-                                // present in the current mscorlib
+                                // present in the our test libraries
                                 Assert.AreNotEqual(StackType.StackTypeUnknownObjectRef, stackType);
                             }
                         }
                     }
                 }
             }
+        }
+
+        public static MetadataLoadContext BuildMetadataLoadContextCurrentRuntime(string dllpath){
+            // Get the array of runtime assemblies.
+            string[] runtimeAssemblies = Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
+            
+            // Create the list of assembly paths consisting of runtime assemblies and the inspected assembly.
+            var paths = new List<string>(runtimeAssemblies);
+            paths.Add(dllpath);
+
+            // Create PathAssemblyResolver that can resolve assemblies using the created list.
+            var resolver = new PathAssemblyResolver(paths);
+            var context = new MetadataLoadContext(resolver);
+
+            if (context.CoreAssembly == null){
+                throw new NotSupportedException("CoreAssembly cannot be null.");
+            }
+
+            return context;
+        }
+
+        [Test]
+        public void MergeTypeDSA(){
+            // Unfortunately, I have no way to debug the issue for osx
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)){
+                Assert.Pass();
+            }
+
+            MetadataLoadContext metadataLoadContext = BuildMetadataLoadContextCurrentRuntime(_dsaPath);
+            TypeAdapter typeAdapter = new TypeAdapter(metadataLoadContext);
+            LowestCommonAncestor lowestCommonAncestor = new LowestCommonAncestor(typeAdapter);
+
+            Process(_dsa, lowestCommonAncestor);
         }
     }
 }

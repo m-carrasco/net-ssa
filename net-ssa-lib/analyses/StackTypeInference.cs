@@ -142,7 +142,7 @@ namespace NetSsa.Analyses
         private MethodDefinition _method;
         private TypeSystem _typeSystem;
         private bool _mergeTypes;
-        LowestCommonAncestor _lca;
+        private LowestCommonAncestor _lca;
 
         public StackTypeInference(IRBody body){
             _body = body;
@@ -551,12 +551,18 @@ namespace NetSsa.Analyses
                         Object encodedOperand = bytecodeInstruction.EncodedOperand;
                         TypeReference handle = null;
 
+                        /*
+                            typeof() and ImportReference is not the best solution.
+                            It will create a TypeReference assuming that the runtime CoreLibrary
+                            is the same one as the one associated with the library being processed.
+                        */
+
                         if (encodedOperand is TypeReference typeRef){
-                            handle = _typeSystem.Boolean.Module.GetType("System.RuntimeTypeHandle");
+                            handle = _module.ImportReference(typeof(System.RuntimeTypeHandle), null);
                         } else if (encodedOperand is MethodReference methodRef){
-                            handle = _typeSystem.Boolean.Module.GetType("System.RuntimeMethodHandle");
+                            handle = _module.ImportReference(typeof(System.RuntimeMethodHandle), null);
                         } else if (encodedOperand is FieldReference fieldRef){
-                            handle = _typeSystem.Boolean.Module.GetType("System.RuntimeFieldHandle");
+                            handle = _module.ImportReference(typeof(System.RuntimeFieldHandle), null);
                         } else {
                             throw new NotImplementedException("Unexpected encoded operand type: " + encodedOperand.GetType());
                         }
@@ -725,12 +731,17 @@ namespace NetSsa.Analyses
 
         private static TypeReference ResolveGenericParameterAsArgument(GenericParameter genericParameter, MethodReference methodReference){
             // https://groups.google.com/g/mono-cecil/c/m_hv7mHXpCI
-            
+            // https://gist.github.com/tomspilman/99ddac3b60f72814c6e5
+
             IGenericInstance genericInstance = null;
             switch (genericParameter.Type){
                 case GenericParameterType.Type:
                     {
-                        genericInstance = (GenericInstanceType)methodReference.DeclaringType;
+                        genericInstance = methodReference.DeclaringType as GenericInstanceType;
+                        if (genericInstance == null){
+                            // This is useful if the DeclaringType is an ArrayType of a GenericParameter
+                            return genericParameter;
+                        } 
                         break;
                     }
                 case GenericParameterType.Method:

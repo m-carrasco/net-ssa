@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 using Mono.Cecil;
 
@@ -19,7 +20,6 @@ namespace NetSsa.Reflection
         // TODO: Document IModifierType limitation.
         //       Method.MetadataToken limitation.
         //       FunctionPointerType limitation.
-        //       Perhaps it could be worth caching results...
         // Document that we could use the name of the type but there is a non-trivial mismatch between cecil and System.Reflection 
         public System.Type ToSystemReflectionType(Mono.Cecil.TypeReference typeReference) {
 
@@ -27,15 +27,18 @@ namespace NetSsa.Reflection
             if (TypeMapping.TryGetValue(typeReference, out result)){
                 return result;
             }
-
-            ModuleDefinition m = typeReference.Module;
-            String file = m.FileName;
+            
+            // Do not use typeReference.Module
+            // that is the module where the TypeReference is placed.
+            // We want to know the assembly of the referenced type. 
+            String assemblyName = typeReference.Scope.Name;
+            assemblyName = assemblyName.Replace(".dll", "");
 
             System.Reflection.Assembly assembly = null;
-            if (!LoadedAssemblies.TryGetValue(file, out assembly)){
+            if (!LoadedAssemblies.TryGetValue(assemblyName, out assembly)){
                 // At the time of writing, MetadataLoadContext is not caching this result.
-                assembly = MetadataLoadContext.LoadFromAssemblyPath(file);
-                LoadedAssemblies[file] = assembly;
+                assembly = MetadataLoadContext.LoadFromAssemblyName(assemblyName);
+                LoadedAssemblies[assemblyName] = assembly;
             } 
 
             if (typeReference is Mono.Cecil.PointerType){
