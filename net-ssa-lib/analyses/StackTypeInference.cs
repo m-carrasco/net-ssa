@@ -624,6 +624,10 @@ namespace NetSsa.Analyses
             if (!definedRegisters.All(r => FullStackTypeEquality(typing[r], typing[definedRegisters[0]]))){
                 switch (typing[firstDefinedRegister].Kind){
                     case StackType.StackTypeKind.NativeManagedPointer:
+                        // We could try to merge the types. However, this looks extremely rare.
+                        // In fact, ILVerify flags this as unverifiable when it is verifiable.
+                        // https://stackoverflow.com/questions/72722687/stack-merge-points-and-managed-pointers-in-the-clr
+                        // On the other hand, unverifiable code could do this. We could refine the analysis if needed.
                         return StackType.StackTypeUnknownNativeManagedPointer;
                     case StackType.StackTypeKind.NativeObjectRef:
                     {
