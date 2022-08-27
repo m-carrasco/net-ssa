@@ -149,7 +149,6 @@ namespace UnitTest
 
         [Test]
         // Unfortunately, I have no way to debug the issue for osx
-        [Platform(Exclude="MacOsX")]
         public void MergeTypeMscorlib(){
             // Unfortunately, I have no way to debug the issue for osx
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)){
