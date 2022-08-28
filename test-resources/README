@@ -1,0 +1,2 @@
+mscorlib.dll - Mono version 6.12.0.182 - /usr/lib/mono/4.5/mscorlib.dll
+DSA.dll - https://github.com/abdonkov/DSA/commit/d93ed86fd427413eb875682360e19e449cf58d25 - modified to target net6

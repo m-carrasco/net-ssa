@@ -16,6 +16,7 @@ config.substitutions.append(('%ilasm', config.ilasm_bin))
 config.substitutions.append(('%ssa-query', os.path.join(config.souffle_bin_dir, "ssa-query")))
 config.substitutions.append(('%net-ssa-cli', os.path.join(config.net_ssa_bin_dir, "net-ssa-cli")))
 config.substitutions.append(('%FileCheck', os.path.join(config.llvm_bin_dir, "FileCheck")))
+config.substitutions.append(('%test-resources-dir', os.path.join(config.my_src_root, "test-resources")))
 
 # This is useful if a custom dotnet installation is used.
 if os.environ.get('DOTNET_ROOT') is not None:

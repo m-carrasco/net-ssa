@@ -5,9 +5,8 @@ using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using Mono.Cecil;
-using Mono.Cecil.Cil;
 using NetSsa.Analyses;
-using NetSsa.Instructions;
+using NetSsa.Reflection;
 
 namespace NetSsaCli
 {
@@ -17,6 +16,12 @@ namespace NetSsaCli
         {
             IR,
             Ssa
+        }
+
+        enum TypeInferenceKind{
+            None,
+            Basic,
+            Precise
         }
 
         public static void AddDisassasembleSubCommand(RootCommand rootCommand)
@@ -35,25 +40,25 @@ namespace NetSsaCli
                 description: "Perform SSA correctness checks (one assignment, etc.).");
             disassemble.AddOption(verifySsa);
 
-            var typeInference = new Option<bool>(
+            var typeInference = new Option<TypeInferenceKind>(
                 "--type-inference",
-                getDefaultValue: () => false,
-                description: "Type each SSA register according to stack types. Only valid if disassembling is SSA.");
+                getDefaultValue: () => TypeInferenceKind.None,
+                description: "Type each SSA register according to stack types. Only valid if disassembling is SSA. Precise mode assumes that input assembly is linked against the current dotnet runtime. In addition, it may not work if the input depends on other assemblies than the one of the runtime.");
             disassemble.AddOption(typeInference);
 
             var method = new Command("method");
             method.AddArgument(new Argument<String>("method", "Method to disassemble."));
-            method.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool, bool, String>(PrintDisassemble);
+            method.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool, TypeInferenceKind, String>(PrintDisassemble);
             disassemble.AddCommand(method);
 
             var all = new Command("all", "All methods in the assembly are disassembled.");
-            all.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool, bool>(PrintDisassemble);
+            all.Handler = CommandHandler.Create<FileInfo, DisassemblyType, bool, TypeInferenceKind>(PrintDisassemble);
             disassemble.AddCommand(all);
 
             rootCommand.Add(disassemble);
         }
 
-        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa, bool typeInference, String method)
+        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa, TypeInferenceKind typeInference, String method)
         {
             using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(input.FullName))
             {
@@ -70,7 +75,7 @@ namespace NetSsaCli
                                 return;
                             }
 
-                            PrintDisassemble(m, type, verifySsa, typeInference);
+                            PrintDisassemble(m, type, verifySsa, typeInference, input.FullName);
 
                             return;
                         }
@@ -81,7 +86,7 @@ namespace NetSsaCli
             }
         }
         
-        static void PrintDisassemble(MethodDefinition m, DisassemblyType type, bool verifySsa, bool typeInference){
+        static void PrintDisassemble(MethodDefinition m, DisassemblyType type, bool verifySsa, TypeInferenceKind typeInference, string assemblyPath){
             IRBody irBody = Unstacker.Compute(m.Body);
             bool isSsa = DisassemblyType.Ssa.Equals(type);
 
@@ -89,9 +94,19 @@ namespace NetSsaCli
             if (isSsa)
             {
                 Ssa.Compute(irBody);
-                if (typeInference){
-                    StackTypeInference analysis = new StackTypeInference(irBody);
-                    stackTypes = analysis.Type();
+                if (typeInference != TypeInferenceKind.None){
+                    
+                    StackTypeInference typeAnalysis = null;
+                    if (typeInference == TypeInferenceKind.Basic){
+                        typeAnalysis = new StackTypeInference(irBody);
+                    } else {
+                        var mlc = DefaultMetadataLoadContext.BuildMetadataLoadContextCurrentRuntime(assemblyPath);
+                        TypeAdapter typeAdapter = new TypeAdapter(mlc);
+                        LowestCommonAncestor lowestCommonAncestor = new LowestCommonAncestor(typeAdapter);
+                        typeAnalysis = new StackTypeInference(irBody, lowestCommonAncestor);
+                    }
+                    
+                    stackTypes = typeAnalysis.Type();
                 }
             }
 
@@ -117,7 +132,7 @@ namespace NetSsaCli
             }
         }
 
-        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa, bool typeInference)
+        static void PrintDisassemble(FileInfo input, DisassemblyType type, bool verifySsa, TypeInferenceKind typeInference)
         {
             using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(input.FullName))
             {
@@ -132,7 +147,7 @@ namespace NetSsaCli
                             continue;
                         }
 
-                        PrintDisassemble(m, type, verifySsa, typeInference);
+                        PrintDisassemble(m, type, verifySsa, typeInference, input.FullName);
                     }
                 }
             }
