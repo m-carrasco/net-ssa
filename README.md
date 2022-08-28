@@ -281,7 +281,7 @@ The simple type inference just characterizes the kind of value that a register c
     * with a reference to the actual class (as long as it doesn't involve unsafe memory accesses or merging different types).
     * Merging implies reasoning about the class hierarchy which is not built-in in `Mono.Cecil`. This involves `phi` instructions.  
 
-The simple operation mode can be called as shown in the `TestExampleDisassemble` unit test.
+The simple operation mode can be called as shown in the `TestExampleDisassemble` unit test. In `net-ssa-cli`, the basic mode can be enabled using `-type-inference=basic` (SSA only).
 
 ### Precise type inference analysis
 
@@ -302,7 +302,7 @@ The precise operation can provide the actual class that an object reference is. 
     * with a reference to the actual class (if possible). This works also for non-assembly types.
     * Unsafe memory accesess or opcodes such as `Refanytype` are not handled. In these cases, the analysis just infers that it is an `ObjectReference` but not the actual class.
 
-The precise operation mode can be called as shown in the `MergeTypeMscorlib` unit test. The class hierarchy analysis converts `Mono.Cecil.TypeReference` to `System.Type`. This simplifies the process of writing from scratch subtying rules, etc. `System.Type` references are converted back to `Mono.Cecil.TypeReference`.  
+The precise operation mode can be called as shown in the `MergeTypeMscorlib` unit test. The class hierarchy analysis converts `Mono.Cecil.TypeReference` to `System.Type`. This simplifies the process of writing from scratch subtying rules, etc. `System.Type` references are converted back to `Mono.Cecil.TypeReference`. In `net-ssa-cli`, the precise mode can be enabled using `-type-inference=precise` (SSA only).
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

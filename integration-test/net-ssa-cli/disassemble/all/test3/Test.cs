@@ -1,4 +1,4 @@
-// RUN: %net-ssa-cli %test-resources-dir/mscorlib.dll disassemble --type=Ssa --type-inference=true all > %t.disassemble
+// RUN: %net-ssa-cli %test-resources-dir/mscorlib.dll disassemble --type=Ssa --type-inference=basic all > %t.disassemble
 // RUN: %FileCheck %s --match-full-lines < %t.disassemble
 
 // CHECK: System.Void System.IO.TextWriter::Write(System.Boolean)
