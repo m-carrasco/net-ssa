@@ -35,18 +35,19 @@ However, it is adviced to compile the project at least once in the host system. 
 2. `cd net-ssa`
 3. `git lfs checkout`
     * Install [git lfs](https://git-lfs.github.com/)
-4.  `dotnet build && dotnet test`
+4.  `git submodule update --init --recursive`
+5.  `dotnet build && dotnet test`
     * This is optional, it requires installing dotnet.
-5. `docker build -t net-ssa/net-ssa .`
-6. `docker run --name dev -v $(pwd):/net-ssa -ti net-ssa/net-ssa`
+6. `docker build -t net-ssa/net-ssa .`
+7. `docker run --name dev -v $(pwd):/net-ssa -ti net-ssa/net-ssa`
    * This is now an interactive container. `$(pwd)` of the host is shared with the container as `net-ssa` source code folder.
-7. Introduce changes in the source code using your IDE as usual.
-8. Build and test in the container, execute these commands in the container terminal:
+8. Introduce changes in the source code using your IDE as usual.
+9. Build and test in the container, execute these commands in the container terminal:
    * `cd build`
    * `(cd /net-ssa && dotnet build)`
    * `lit integration-test/ -vvv`
    * `exit # once you finish working`
-9.  `docker start -i dev # to resume the container terminal`
+10.  `docker start -i dev # to resume the container terminal`
 
 
 ## Build from sources

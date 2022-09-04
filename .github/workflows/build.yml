@@ -12,6 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        submodules: recursive
         fetch-depth: 0
         lfs: true
     - name: Checkout LFS objects
@@ -46,6 +47,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        submodules: recursive
         fetch-depth: 0
         lfs: true
     - name: Checkout LFS objects
@@ -66,6 +68,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        submodules: recursive
         fetch-depth: 0
         lfs: true
     - name: Checkout LFS objects
@@ -119,6 +122,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        submodules: recursive
         fetch-depth: 0
         lfs: true
     - name: Checkout LFS objects
@@ -163,6 +167,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        submodules: recursive
         fetch-depth: 0
         lfs: true
     - name: Checkout LFS objects
