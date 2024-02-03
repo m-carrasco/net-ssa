@@ -49,10 +49,16 @@ namespace NetSsa.Queries
         {
             String suffix = GetTargetSuffix();
             string directory = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
-            string result = Path.Combine(directory, "ssa-query" + suffix);
+            string binaryName = "ssa-query" + suffix;
+            string result = Path.Combine(directory, binaryName);
             if (!File.Exists(result))
             {
-                throw new FileNotFoundException(result);
+                // This will attempt to handle the case where net-ssa-lib is consumed as a nuget package.
+                // Unfortunately, for this case the binaries are not copied right next to the executing assembly.
+                result = Path.Combine(Path.Combine(Path.Combine(Path.Combine(directory, ".."), ".."), "content"), binaryName);
+                if (!File.Exists(result)) {
+                    throw new FileNotFoundException(result);
+                }
             }
 
             return result;
