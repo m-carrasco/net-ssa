@@ -1,0 +1,7 @@
+.dockerignore
+
+ci/docker/Dockerfile
+ci/docker/Dockerfile.base
+ci/build-image.sh
+
+integration-test/output
