@@ -21,7 +21,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '8.0.x'
     - name: Install Souffle
       run: brew install --HEAD souffle-lang/souffle/souffle
     - name: Build Souffle program
@@ -55,14 +55,14 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '8.0.x'
     - name: Build dotnet
       run: |
         dotnet build
         dotnet test --verbosity normal
 
   build-linux:  
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
       with:
@@ -85,16 +85,16 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '8.0.x'
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v1.9
       with:
         cmake-version: '3.21.x'
     - name: Setup dependencies
       run: |
-        sudo chmod +x ci/install-lit.sh && sudo ./ci/install-lit.sh
-        sudo chmod +x ci/install-llvm.sh && sudo ./ci/install-llvm.sh
-        sudo chmod +x ci/install-mono.sh && sudo ./ci/install-mono.sh
+        sudo ./ci/install-lit.sh
+        sudo ./ci/install-llvm.sh
+        sudo ./ci/install-mono.sh
     - name: Build Souffle programs from scratch
       run: |
         cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
@@ -102,20 +102,12 @@ jobs:
       run: |
         dotnet build
         dotnet test --verbosity normal
-    - name: Configure LIT test cases
-      run: |
-        mkdir build
-        cd build 
-        cmake .. 
-    - name: Integration test
-      run: |
-        cd build
         lit integration-test -v
 
   release:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [build-macos, build-windows, build-linux]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
       with:
@@ -138,7 +130,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '8.0.x'
     - name: Build Souffle programs from scratch
       run: |
         cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
@@ -159,7 +151,7 @@ jobs:
   mirror:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [build-macos, build-windows, build-linux]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
       with:

@@ -1,25 +1,35 @@
 # net-ssa [![.NET (build, test and release if necessary)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml/badge.svg?branch=main&event=push)](https://github.com/m-carrasco/net-ssa/actions/workflows/build.yml) [![Docker image](https://github.com/m-carrasco/net-ssa/actions/workflows/docker-ubuntu.yml/badge.svg?branch=main&event=push)](https://github.com/m-carrasco/net-ssa/actions/workflows/docker-ubuntu.yml) ![Nuget](https://img.shields.io/nuget/v/net-ssa-lib)
 
-Microsoft's high-level programming languages, such as C#, are compiled to CIL bytecode. The instruction set architecture of CIL operates on a stack virtual machine with local variables. CIL instruction's operands are implicit because they are elements in the stack. `net-ssa` provides a register-based intermediate representation for CIL where operands become explicit.
 
-Using CIL properties, it is possible to know for every instruction which slots of the stack it consumes. Similarly, it is possible to know how many elements it pushes into the stack. `net-ssa` computes its initial representation promoting stack slots into registers. In this form, a stack slot promoted to register can be defined more than once. Local variables are accessed through store and load instructions (like LLVM-IR).
+Microsoft's high-level programming languages, such as C#, are compiled into Common Intermediate Language (CIL) bytecode. The CIL instruction set operates on a stack virtual machine with implicit operands, as they are elements within the stack. `net-ssa` introduces a register-based intermediate representation for CIL, making operands explicit.
 
-The initial register-based representation can be transformed into SSA form. SSA guarantees that every register is only defined once, and its unique definition dominates its uses. This transformation is based on dominance frontiers and partially implemented in Datalog.
+Utilizing CIL properties, `net-ssa` can determine the stack slots consumed and elements pushed for each instruction. The initial representation involves promoting stack slots into registers. In this stage, a stack slot promoted to a register may have multiple definitions. Local variables are accessed through store and load instructions, similar to LLVM-IR.
 
-`net-ssa` can be either used as a library `net-ssa-lib` or as command-line application `net-ssa-cli`.
+The initial register-based representation can undergo transformation into Static Single Assignment (SSA) form. SSA ensures that each register is defined only once, and its unique definition dominates its uses. This transformation relies on dominance frontiers and is partially implemented in Datalog.
 
-If you have any questions or suggestions, feel free to open an issue to discuss it.
+`net-ssa` can be employed either as a library (`net-ssa-lib`) or as a command-line application (`net-ssa-cli`).
+
+Feel free to open an issue to discuss any questions or suggestions you may have.
 
 ### Table of Contents
 
-* [Quick setup](#quick-setup)
-* [Build from sources](#build-from-sources)
-* [Build native dependencies](#build-native-dependencies)
-* [Example: net-ssa-cli](#disassembling-with-net-ssa-cli)
-* [Example: net-ssa-lib](#disassembling-with-net-ssa-lib)
-* [Type inference analysis](#type-inference-analysis)
-* [Contributing](#contributing)
-* [Acknowledgements](#acknowledgements)
+- [net-ssa   ](#net-ssa---)
+    - [Table of Contents](#table-of-contents)
+  - [Mirror](#mirror)
+  - [Quick setup](#quick-setup)
+  - [Build from sources](#build-from-sources)
+    - [Ubuntu 22.04](#ubuntu-2204)
+    - [Windows and MacOS](#windows-and-macos)
+  - [Build native dependencies](#build-native-dependencies)
+  - [Examples](#examples)
+    - [Disassembling with net-ssa-cli](#disassembling-with-net-ssa-cli)
+    - [Disassembling with net-ssa-lib](#disassembling-with-net-ssa-lib)
+  - [Type inference analysis](#type-inference-analysis)
+    - [Simple type inference analysis](#simple-type-inference-analysis)
+    - [Precise type inference analysis](#precise-type-inference-analysis)
+  - [Contributing](#contributing)
+  - [Acknowledgements](#acknowledgements)
+  - [License](#license)
 
 ## Mirror
 
@@ -29,40 +39,33 @@ This is caused by Github's Git LFS bandwidth, which is 1GB per month.
 ## Quick setup
 
 It is possible to develop and test `net-ssa` without installing any dependency in your system but [Docker](https://docs.docker.com/get-docker/).
-However, it is adviced to compile the project at least once in the host system. This is mainly for downloading dependencies and correctly setting up any IDE.
 
 1. `git clone git@github.com:m-carrasco/net-ssa.git`
 2. `cd net-ssa`
 3. `git lfs checkout`
     * Install [git lfs](https://git-lfs.github.com/)
-4.  `dotnet build && dotnet test`
-    * This is optional, it requires installing dotnet.
-5. `docker build -t net-ssa/net-ssa .`
-6. `docker run --name dev -v $(pwd):/net-ssa -ti net-ssa/net-ssa`
-   * This is now an interactive container. `$(pwd)` of the host is shared with the container as `net-ssa` source code folder.
-7. Introduce changes in the source code using your IDE as usual.
-8. Build and test in the container, execute these commands in the container terminal:
-   * `cd build`
-   * `(cd /net-ssa && dotnet build)`
-   * `lit integration-test/ -vvv`
-   * `exit # once you finish working`
-9.  `docker start -i dev # to resume the container terminal`
-
+4. `./scripts/build-image.sh`
+5. `./scripts/tmp-container.sh`
+   * This is now an interactive and temporary container. 
+   * The host's folder containing the repository is shared with the container. In the container, this is located at `/home/ubuntu/net-ssa/`.
+6. Introduce changes in the source code using your IDE as usual.
+7. Build and test in the container, execute these commands in the container terminal:
+   * `dotnet build`
+   * `dotnet test` 
+ * `lit integration-test/ -vvv`
 
 ## Build from sources
 
-### Ubuntu 20.04
+### Ubuntu 22.04
 
 1. `cd net-ssa`
 2. `git lfs checkout`
     * Install [git lfs](https://git-lfs.github.com/)
 3. `dotnet build`
 4. `dotnet test`
-5. `mkdir build`
-6. `cd build && cmake ..`
-7. `lit integration-test/ -vvv`
+5. `lit integration-test/ -vvv`
 
-To know the required dependencies for the integration tests (`cmake` and `lit` step), please check the [Dockerfile](https://github.com/m-carrasco/net-ssa/blob/main/Dockerfile).
+Please check the [Dockerfile](https://github.com/m-carrasco/net-ssa/blob/main/Dockerfile) to know which dependencies must be installed.
 The Dockerfile executes the shell scripts under the [ci](https://github.com/m-carrasco/net-ssa/tree/main/ci) folder. You would just need to execute them once in your system.
 
 ### Windows and MacOS
