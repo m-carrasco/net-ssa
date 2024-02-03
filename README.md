@@ -3,7 +3,7 @@
 
 Microsoft's high-level programming languages, such as C#, are compiled into Common Intermediate Language (CIL) bytecode. The CIL instruction set operates on a stack virtual machine with implicit operands, as they are elements within the stack. `net-ssa` introduces a register-based intermediate representation for CIL, making operands explicit.
 
-Utilizing CIL properties, `net-ssa` can determine the stack slots consumed and elements pushed for each instruction. The initial representation involves promoting stack slots into registers. In this stage, a stack slot promoted to a register may have multiple definitions. Local variables are accessed through store and load instructions, similar to LLVM-IR.
+Utilizing CIL properties, `net-ssa` can determine the stack slots consumed and the pushed elements amount for each instruction. The initial representation involves promoting stack slots into registers. In this stage, a stack slot promoted to a register may have multiple definitions. Local variables are accessed through store and load instructions, similar to LLVM-IR.
 
 The initial register-based representation can undergo transformation into Static Single Assignment (SSA) form. SSA ensures that each register is defined only once, and its unique definition dominates its uses. This transformation relies on dominance frontiers and is partially implemented in Datalog.
 
@@ -19,7 +19,7 @@ Feel free to open an issue to discuss any questions or suggestions you may have.
   - [Quick setup](#quick-setup)
   - [Build from sources](#build-from-sources)
     - [Ubuntu 22.04](#ubuntu-2204)
-    - [Windows and MacOS](#windows-and-macos)
+    - [Windows and macOS](#windows-and-macos)
   - [Build native dependencies](#build-native-dependencies)
   - [Examples](#examples)
     - [Disassembling with net-ssa-cli](#disassembling-with-net-ssa-cli)
@@ -68,7 +68,7 @@ It is possible to develop and test `net-ssa` without installing any dependency i
 Please check the [Dockerfile](https://github.com/m-carrasco/net-ssa/blob/main/Dockerfile) to know which dependencies must be installed.
 The Dockerfile executes the shell scripts under the [ci](https://github.com/m-carrasco/net-ssa/tree/main/ci) folder. You would just need to execute them once in your system.
 
-### Windows and MacOS
+### Windows and macOS
 
 The steps are the same as in Ubuntu. The project building and unit testing is done in the CI. Yet, the integration tests aren't configured.
 Anyway, the dependencies should be the same as in Ubuntu. If you encounter any problem while trying this, please open an issue.
@@ -78,9 +78,9 @@ Anyway, the dependencies should be the same as in Ubuntu. If you encounter any p
 `net-ssa` has native dependencies, which are shipped in the project already. You shouldn't need to build them. Usually, this is only required for development. The supported systems are:
 * Linux - x86-64
 * Windows - x86-64
-* MacOS - x86-64 and arm64
+* macOS - x86-64 and arm64
 
-In case they must be re-built, [`./net-ssa/souffle/build-all-with-docker.sh`](https://github.com/m-carrasco/net-ssa/blob/main/souffle/build-all-with-docker.sh) is available. The script compiles these dependencies from scratch using the source code in your repository. Under the hood, the script isolates this process using Docker. This only builds the Linux and Windows dependencies. Cross-compilation for MacOS is incredible difficult. If you are a MacOS user, check the CI to figure out the required dependencies and execute `build-souffle-macos-x86-64-arm64.sh`.
+In case they must be re-built, [`./net-ssa/souffle/build-all-with-docker.sh`](https://github.com/m-carrasco/net-ssa/blob/main/souffle/build-all-with-docker.sh) is available. The script compiles these dependencies from scratch using the source code in your repository. Under the hood, the script isolates this process using Docker. This only builds the Linux and Windows dependencies. Cross-compilation for macOS is incredible difficult. If you are a macOS user, check the CI to figure out the required dependencies and execute `build-souffle-macos-x86-64-arm64.sh`.
 
 ## Examples
 

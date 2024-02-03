@@ -33,7 +33,7 @@ config.test_format = lit.formats.ShTest(True)
 
 config.suffixes = ['.cs', '.test', '.il']
 
-config.my_src_root = os.environ["NET_SSA_SRC_DIR"]
+config.my_src_root = os.path.join(os.path.dirname(__file__), "..")
 
 config.net_ssa_bin_dir = os.path.join(config.my_src_root, "net-ssa-cli", "bin", "Debug", "net8.0")
 config.souffle_bin_dir = os.path.join(config.my_src_root, "souffle", "bin", "linux-x86-64")
