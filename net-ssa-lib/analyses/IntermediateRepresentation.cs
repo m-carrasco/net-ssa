@@ -19,6 +19,8 @@ namespace NetSsa.Analyses
         {
             get { return MemoryLocalVariables.Union(MemoryArgumentVariables); }
         }
+        
+        public IDictionary<Register, StackType> StackTypes;
     }
 
     public class ExceptionHandlerEntry
