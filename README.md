@@ -44,15 +44,15 @@ It is possible to develop and test `net-ssa` without installing any dependency i
 2. `cd net-ssa`
 3. `git lfs checkout`
     * Install [git lfs](https://git-lfs.github.com/)
-4. `./scripts/build-image.sh`
-5. `./scripts/tmp-container.sh`
+4. `./ci/build-image.sh`
+5. `./ci/tmp-container.sh`
    * This is now an interactive and temporary container. 
    * The host's folder containing the repository is shared with the container. In the container, this is located at `/home/ubuntu/net-ssa/`.
 6. Introduce changes in the source code using your IDE as usual.
 7. Build and test in the container, execute these commands in the container terminal:
    * `dotnet build`
    * `dotnet test` 
- * `lit integration-test/ -vvv`
+   * `lit integration-test/ -vvv`
 
 ## Build from sources
 
