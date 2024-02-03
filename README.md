@@ -3,7 +3,7 @@
 
 Microsoft's high-level programming languages, such as C#, are compiled into Common Intermediate Language (CIL) bytecode. The CIL instruction set operates on a stack virtual machine with implicit operands, as they are elements within the stack. `net-ssa` introduces a register-based intermediate representation for CIL, making operands explicit.
 
-Utilizing CIL properties, `net-ssa` can determine the stack slots consumed and the pushed elements amount for each instruction. The initial representation involves promoting stack slots into registers. In this stage, a stack slot promoted to a register may have multiple definitions. Local variables are accessed through store and load instructions, similar to LLVM-IR.
+CIL properties allow `net-ssa` to determine the stack slots consumed and the pushed elements amount for each instruction. The initial representation involves promoting stack slots into registers using this information. In this stage, a stack slot promoted to a register may have multiple definitions. Local variables are accessed through store and load instructions, similar to LLVM-IR.
 
 The initial register-based representation can undergo transformation into Static Single Assignment (SSA) form. SSA ensures that each register is defined only once, and its unique definition dominates its uses. This transformation relies on dominance frontiers and is partially implemented in Datalog.
 
