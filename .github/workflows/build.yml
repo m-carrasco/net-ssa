@@ -95,6 +95,7 @@ jobs:
         sudo ./ci/install-lit.sh
         sudo ./ci/install-llvm.sh
         sudo ./ci/install-mono.sh
+        dotnet tool install -g dotnet-repl
     - name: Build Souffle programs from scratch
       run: |
         cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
