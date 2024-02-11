@@ -5,3 +5,9 @@ ci/docker/Dockerfile.base
 ci/build-image.sh
 
 integration-test/output
+net-ssa-cli/obj
+net-ssa-lib/obj
+unit-tests/obj
+net-ssa-cli/bin
+net-ssa-lib/bin
+unit-tests/bin

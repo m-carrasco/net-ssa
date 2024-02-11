@@ -145,7 +145,7 @@ jobs:
         dotnet test --verbosity normal
     - name: Generate nuget packages
       run: |
-        ./ci/nuget-pack.sh "${{ steps.gitversion.outputs.AssemblySemVer }}" "${{ steps.gitversion.outputs.AssemblySemVer }}" "${{ steps.gitversion.outputs.InformationalVersion }}" "${{ steps.gitversion.outputs.AssemblySemVer }}"
+        ./ci/nuget-pack.sh "${{ steps.gitversion.outputs.AssemblySemVer }}" "${{ steps.gitversion.outputs.AssemblySemVer }}" "${{ steps.gitversion.outputs.InformationalVersion }}" "${{ steps.gitversion.outputs.AssemblySemVer }}" "build/bin/net-ssa/package"
         dotnet nuget push build/bin/net-ssa/package/net-ssa-lib.${{ steps.gitversion.outputs.NuGetVersionV2 }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
   mirror:
