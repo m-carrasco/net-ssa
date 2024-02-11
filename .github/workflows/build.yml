@@ -95,6 +95,7 @@ jobs:
         sudo ./ci/install-lit.sh
         sudo ./ci/install-llvm.sh
         sudo ./ci/install-mono.sh
+        dotnet tool install -g dotnet-repl
     - name: Build Souffle programs from scratch
       run: |
         cd $GITHUB_WORKSPACE/souffle && rm -r bin/ && ./build-all-with-docker.sh
@@ -145,7 +146,7 @@ jobs:
         dotnet test --verbosity normal
     - name: Generate nuget packages
       run: |
-        ./ci/nuget-pack.sh "${{ steps.gitversion.outputs.AssemblySemVer }}" "${{ steps.gitversion.outputs.AssemblySemVer }}" "${{ steps.gitversion.outputs.InformationalVersion }}" "${{ steps.gitversion.outputs.AssemblySemVer }}"
+        ./ci/nuget-pack.sh "${{ steps.gitversion.outputs.AssemblySemVer }}" "${{ steps.gitversion.outputs.AssemblySemVer }}" "${{ steps.gitversion.outputs.InformationalVersion }}" "${{ steps.gitversion.outputs.AssemblySemVer }}" "build/bin/net-ssa/package"
         dotnet nuget push build/bin/net-ssa/package/net-ssa-lib.${{ steps.gitversion.outputs.NuGetVersionV2 }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
   mirror:

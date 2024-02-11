@@ -51,6 +51,7 @@ config.test_source_root = os.path.dirname(__file__)
 config.test_build_root = os.path.join(config.test_source_root, "output")
 if not os.path.exists(config.test_build_root):
     os.mkdir(config.test_build_root)
+config.test_exec_root = config.test_build_root
 
 config.substitutions.append(('%mono', config.mono_bin))
 config.substitutions.append(('%mcs', config.mcs_bin))
@@ -60,7 +61,7 @@ config.substitutions.append(('%net-ssa-cli', os.path.join(config.net_ssa_bin_dir
 config.substitutions.append(('%FileCheck', os.path.join(config.llvm_bin_dir, "FileCheck")))
 config.substitutions.append(('%test-resources-dir', os.path.join(config.my_src_root, "test-resources")))
 
-env_vars = {'DOTNET_ROOT'}
+env_vars = {'DOTNET_ROOT', 'HOME'}
 for e in env_vars:
     if e in os.environ:
         config.environment[e] = os.environ[e]

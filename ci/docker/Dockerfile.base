@@ -22,7 +22,9 @@ COPY --chown=ubuntu:mygroup ./ci/ ${NET_SSA_SRC_DIR}/ci
 RUN sudo ${NET_SSA_SRC_DIR}/ci/install-souffle.sh && \
     sudo ${NET_SSA_SRC_DIR}/ci/install-lit.sh && \
     sudo ${NET_SSA_SRC_DIR}/ci/install-llvm.sh && \
-    sudo ${NET_SSA_SRC_DIR}/ci/install-mono.sh
+    sudo ${NET_SSA_SRC_DIR}/ci/install-mono.sh && \
+    dotnet tool install -g dotnet-repl
 
+ENV PATH="$PATH:/home/ubuntu/.dotnet/tools"
 
 WORKDIR ${NET_SSA_SRC_DIR}
